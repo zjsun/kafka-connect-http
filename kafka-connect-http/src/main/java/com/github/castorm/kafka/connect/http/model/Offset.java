@@ -22,11 +22,13 @@ package com.github.castorm.kafka.connect.http.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 
@@ -38,10 +40,17 @@ public class Offset {
 
     private static final String TIMESTAMP_KEY = "timestamp";
 
-    private final Map<String, ?> properties;
+    private static final String KEY_PS = "ps";
+    private static final String KEY_PI = "pi";
+    private static final String KEY_PT = "pt";
+    private static final String KEY_PG = "pg";
+    private static final String KEY_PR = "pr";
+
+    private final Map<String, Object> properties;
 
     private Offset(Map<String, ?> properties) {
-        this.properties = properties;
+        this.properties = (Map<String, Object>) properties;
+        this.parsePager();
     }
 
     public static Offset of(Map<String, ?> properties) {
@@ -61,6 +70,17 @@ public class Offset {
         return new Offset(props);
     }
 
+    public static Offset updatePr(Offset origin, Map<String, ?> update) {
+        Map<String, Object> props = new HashMap<>(origin.toMap());
+        if (update.containsKey(KEY_PS)) props.put(KEY_PS, update.get(KEY_PS));
+        if (update.containsKey(KEY_PI)) props.put(KEY_PI, update.get(KEY_PI));
+        return new Offset(props);
+    }
+
+    public static Offset updateNextPi(Offset origin, int nextPi){
+        return updatePr(origin, Collections.singletonMap(KEY_PI, nextPi));
+    }
+
     public Map<String, ?> toMap() {
         return properties;
     }
@@ -72,4 +92,22 @@ public class Offset {
     public Optional<Instant> getTimestamp() {
         return ofNullable((String) properties.get(TIMESTAMP_KEY)).map(Instant::parse);
     }
+
+    private void parsePager() {
+        if (properties.containsKey(KEY_PS) && properties.containsKey(KEY_PI) && properties.containsKey(KEY_PT)) {
+            int ps = Integer.parseInt((String) properties.get(KEY_PS));
+            int pi = Integer.parseInt((String) properties.get(KEY_PI));
+            Pageable request = PageRequest.of(pi, ps);
+            properties.put(KEY_PR, request);
+            if (properties.containsKey(KEY_PT)) {
+                Page page = new PageImpl(Arrays.asList(new Object[ps]), request, Long.parseLong((String) properties.get(KEY_PT)));
+                properties.put(KEY_PG, page);
+            }
+        }
+    }
+
+    public Optional<Page> getPager() {
+        return Optional.ofNullable((Page) properties.get(KEY_PG));
+    }
+
 }

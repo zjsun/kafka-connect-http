@@ -37,6 +37,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.springframework.data.domain.Page;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -72,6 +73,9 @@ public class HttpSourceTask extends SourceTask {
     @Getter
     private Offset offset;
 
+    private boolean paging = false; // 正在翻页执行标记
+    private HttpSourceConnectorConfig config;
+
     HttpSourceTask(Function<Map<String, String>, HttpSourceConnectorConfig> configFactory) {
         this.configFactory = configFactory;
     }
@@ -83,7 +87,7 @@ public class HttpSourceTask extends SourceTask {
     @Override
     public void start(Map<String, String> settings) {
 
-        HttpSourceConnectorConfig config = configFactory.apply(settings);
+        config = configFactory.apply(settings);
 
         throttler = config.getThrottler();
         requestFactory = config.getRequestFactory();
@@ -102,7 +106,10 @@ public class HttpSourceTask extends SourceTask {
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
 
-        throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
+        if (!paging) {
+            throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
+            offset = Offset.updatePr(offset, config.getInitialOffset()); // 新迭代开始时重置翻页
+        }
 
         HttpRequest request = requestFactory.createRequest(offset);
 
@@ -145,6 +152,16 @@ public class HttpSourceTask extends SourceTask {
         offset = confirmationWindow.getLowWatermarkOffset()
                 .map(Offset::of)
                 .orElse(offset);
+
+        Page page = offset.getPager().orElse(null);
+        if (page != null) {
+            if (page.hasNext()) { // 进入翻页过程，并置下一页
+                paging = true;
+                offset = Offset.updateNextPi(offset, page.nextPageable().getPageNumber());
+            } else { // 退出翻页过程
+                paging = false;
+            }
+        }
 
         log.debug("Offset set to {}", offset);
     }

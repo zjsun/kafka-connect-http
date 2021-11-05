@@ -38,21 +38,18 @@
         <url>https://github.com/castorm/kafka-connect-http/issues</url>
     </issueManagement>
 
-    <scm>
-        <url>https://github.com/castorm/kafka-connect-http</url>
-        <connection>scm:git:https://github.com/castorm/kafka-connect-http.git</connection>
-        <tag>v0.3.5</tag>
-    </scm>
-
+    <!--  私服Nexus -->
     <distributionManagement>
-        <site>
-            <id>wiki</id>
-            <url>https://github.com/castorm/kafka-connect-http/wiki</url>
-        </site>
         <repository>
-            <id>github</id>
-            <url>https://maven.pkg.github.com/castorm/kafka-connect-http</url>
+            <id>datav-releases</id>
+            <name>Nexus Release Repository</name>
+            <url>${project.repository.host}/repository/maven-releases/</url>
         </repository>
+        <snapshotRepository>
+            <id>datav-snapshots</id>
+            <name>Nexus Snapshot Repository</name>
+            <url>${project.repository.host}/repository/maven-snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <modules>
@@ -84,6 +81,14 @@
         <guava.version>30.1.1-jre</guava.version>
         <testcontainers.version>1.16.2</testcontainers.version>
         <rxjava.version>3.1.2</rxjava.version>
+
+        <!-- datav -->
+        <skipTests>true</skipTests>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <failsafe.skip>true</failsafe.skip>
+        <docker.prefix>docker.datav.com/datav</docker.prefix>
+        <project.repository.host>http://121.36.152.60:8081</project.repository.host>
     </properties>
 
     <dependencyManagement>
@@ -223,7 +228,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>2.22.2</version>
                 <configuration>
-                    <skipTests>false</skipTests>
+                    <skipTests>${failsafe.skip}</skipTests>
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>

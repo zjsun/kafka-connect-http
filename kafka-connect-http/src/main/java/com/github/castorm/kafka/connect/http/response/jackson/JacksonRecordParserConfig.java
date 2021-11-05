@@ -9,9 +9,9 @@ package com.github.castorm.kafka.connect.http.response.jackson;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,6 +25,7 @@ import lombok.Getter;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
+import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
 import java.util.Map;
@@ -49,12 +50,14 @@ public class JacksonRecordParserConfig extends AbstractConfig {
     private static final String ITEM_KEY_POINTER = "http.response.record.key.pointer";
     private static final String ITEM_TIMESTAMP_POINTER = "http.response.record.timestamp.pointer";
     private static final String ITEM_OFFSET_VALUE_POINTER = "http.response.record.offset.pointer";
+    private static final String PAGER_POINTER = "http.response.pager.pointer";
 
     private final JsonPointer recordsPointer;
     private final List<JsonPointer> keyPointer;
     private final JsonPointer valuePointer;
     private final Optional<JsonPointer> timestampPointer;
     private final Map<String, JsonPointer> offsetPointers;
+    private final Map<String, JsonPointer> pagerPointers;
 
     JacksonRecordParserConfig(Map<String, ?> originals) {
         super(config(), originals);
@@ -65,6 +68,9 @@ public class JacksonRecordParserConfig extends AbstractConfig {
         offsetPointers = breakDownMap(getString(ITEM_OFFSET_VALUE_POINTER)).entrySet().stream()
                 .map(entry -> new SimpleEntry<>(entry.getKey(), compile(entry.getValue())))
                 .collect(toMap(Entry::getKey, Entry::getValue));
+        pagerPointers = breakDownMap(getString(PAGER_POINTER)).entrySet().stream()
+                .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), compile(entry.getValue())))
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public static ConfigDef config() {
@@ -73,6 +79,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
                 .define(ITEM_POINTER, STRING, "/", HIGH, "Item JsonPointer")
                 .define(ITEM_KEY_POINTER, STRING, null, HIGH, "Item Key JsonPointers")
                 .define(ITEM_TIMESTAMP_POINTER, STRING, null, MEDIUM, "Item Timestamp JsonPointer")
-                .define(ITEM_OFFSET_VALUE_POINTER, STRING, "", MEDIUM, "Item Offset JsonPointers");
+                .define(ITEM_OFFSET_VALUE_POINTER, STRING, "", MEDIUM, "Item Offset JsonPointers")
+                .define(PAGER_POINTER, STRING, "", MEDIUM, "Pager JsonPointers");
     }
 }

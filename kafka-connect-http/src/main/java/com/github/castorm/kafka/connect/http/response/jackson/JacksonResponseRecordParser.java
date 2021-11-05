@@ -32,7 +32,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.github.castorm.kafka.connect.common.CollectionUtils.merge;
-import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toMap;
 
 @RequiredArgsConstructor
 public class JacksonResponseRecordParser implements Configurable {
@@ -44,6 +44,8 @@ public class JacksonResponseRecordParser implements Configurable {
     private final JacksonSerializer serializer;
 
     private JsonPointer recordsPointer;
+
+    private Map<String, JsonPointer> pagerPointer;
 
     public JacksonResponseRecordParser() {
         this(new JacksonRecordParser(), new JacksonSerializer(new ObjectMapper()));
@@ -57,6 +59,7 @@ public class JacksonResponseRecordParser implements Configurable {
     public void configure(Map<String, ?> settings) {
         JacksonRecordParserConfig config = configFactory.apply(settings);
         recordsPointer = config.getRecordsPointer();
+        pagerPointer = config.getPagerPointers();
     }
 
     Stream<JacksonRecord> getRecords(byte[] body) {
@@ -69,10 +72,13 @@ public class JacksonResponseRecordParser implements Configurable {
                 .map(jsonRecord -> toJacksonRecord(jsonRecord, responseOffset));
     }
 
+    // 解析pager信息并存入offset
     private Map<String, Object> getResponseOffset(JsonNode node) {
-        return emptyMap();
+        return pagerPointer.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, entry -> serializer.getObjectAt(node, entry.getValue()).asText()));
     }
 
+    @SuppressWarnings("deprecation")
     private JacksonRecord toJacksonRecord(JsonNode jsonRecord, Map<String, Object> responseOffset) {
         return JacksonRecord.builder()
                 .key(recordParser.getKey(jsonRecord).orElse(null))
@@ -81,4 +87,6 @@ public class JacksonResponseRecordParser implements Configurable {
                 .body(recordParser.getValue(jsonRecord))
                 .build();
     }
+
+
 }
