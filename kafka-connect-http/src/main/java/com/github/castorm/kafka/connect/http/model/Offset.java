@@ -43,14 +43,12 @@ public class Offset {
     private static final String KEY_PS = "ps";
     private static final String KEY_PI = "pi";
     private static final String KEY_PT = "pt";
-    private static final String KEY_PG = "pg";
-    private static final String KEY_PR = "pr";
+    private static final String KEY_PP = "pp";
 
     private final Map<String, Object> properties;
 
     private Offset(Map<String, ?> properties) {
         this.properties = (Map<String, Object>) properties;
-        this.parsePager();
     }
 
     public static Offset of(Map<String, ?> properties) {
@@ -70,15 +68,17 @@ public class Offset {
         return new Offset(props);
     }
 
-    public static Offset updatePr(Offset origin, Map<String, ?> update) {
-        Map<String, Object> props = new HashMap<>(origin.toMap());
-        if (update.containsKey(KEY_PS)) props.put(KEY_PS, update.get(KEY_PS));
-        if (update.containsKey(KEY_PI)) props.put(KEY_PI, update.get(KEY_PI));
+    // 更新分页信息
+    public static Offset updatePage(Map<String, ?> origin, Map<String, ?> update, boolean pi, boolean ps, boolean pt) {
+        Map<String, Object> props = new HashMap<>(origin);
+        if (ps && update.containsKey(KEY_PS)) props.put(KEY_PS, update.get(KEY_PS));
+        if (pi && update.containsKey(KEY_PI)) props.put(KEY_PI, update.get(KEY_PI));
+        if (pt && update.containsKey(KEY_PT)) props.put(KEY_PT, update.get(KEY_PT));
         return new Offset(props);
     }
 
-    public static Offset updateNextPi(Offset origin, int nextPi){
-        return updatePr(origin, Collections.singletonMap(KEY_PI, nextPi));
+    public static Offset updatePi(Map<String, ?> origin, int pi) {
+        return updatePage(origin, Collections.singletonMap(KEY_PI, String.valueOf(pi)), true, false, false);
     }
 
     public Map<String, ?> toMap() {
@@ -93,21 +93,28 @@ public class Offset {
         return ofNullable((String) properties.get(TIMESTAMP_KEY)).map(Instant::parse);
     }
 
-    private void parsePager() {
-        if (properties.containsKey(KEY_PS) && properties.containsKey(KEY_PI) && properties.containsKey(KEY_PT)) {
+    public Optional<Pageable> getPageable() {
+        Pageable request = null;
+        if (properties.containsKey(KEY_PS) && properties.containsKey(KEY_PI)) {
             int ps = Integer.parseInt((String) properties.get(KEY_PS));
             int pi = Integer.parseInt((String) properties.get(KEY_PI));
-            Pageable request = PageRequest.of(pi, ps);
-            properties.put(KEY_PR, request);
+            request = PageRequest.of(pi, ps);
+        }
+        return Optional.ofNullable(request);
+    }
+
+    public Optional<Page> getPage() {
+        Page page = null;
+        Pageable request = getPageable().orElse(null);
+        if (request != null) {
             if (properties.containsKey(KEY_PT)) {
-                Page page = new PageImpl(Arrays.asList(new Object[ps]), request, Long.parseLong((String) properties.get(KEY_PT)));
-                properties.put(KEY_PG, page);
+                page = new PageImpl(Arrays.asList(new Object[request.getPageSize()]), request, Long.parseLong((String) properties.get(KEY_PT)));
             }
         }
+        return Optional.ofNullable(page);
     }
 
-    public Optional<Page> getPager() {
-        return Optional.ofNullable((Page) properties.get(KEY_PG));
+    public int getPp() {
+        return Integer.parseInt((String) properties.getOrDefault(KEY_PP, "0"));
     }
-
 }

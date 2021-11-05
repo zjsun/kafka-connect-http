@@ -38,6 +38,7 @@ import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -75,6 +76,7 @@ public class HttpSourceTask extends SourceTask {
 
     private boolean paging = false; // 正在翻页执行标记
     private HttpSourceConnectorConfig config;
+    private boolean firstPoll = true;
 
     HttpSourceTask(Function<Map<String, String>, HttpSourceConnectorConfig> configFactory) {
         this.configFactory = configFactory;
@@ -107,9 +109,16 @@ public class HttpSourceTask extends SourceTask {
     public List<SourceRecord> poll() throws InterruptedException {
 
         if (!paging) {
-            throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
-            offset = Offset.updatePr(offset, config.getInitialOffset()); // 新迭代开始时重置翻页
+            if (firstPoll) { // 首次启动延迟：todo：改成配置项
+                Thread.sleep(5000);
+            } else {
+                throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
+            }
+
+            offset = Offset.updatePage(offset.toMap(), config.getInitialOffset(), true, true, false); // 新迭代开始时重置翻页
         }
+        firstPoll = false;
+        Pageable requestPage = offset.getPageable().orElse(null);
 
         HttpRequest request = requestFactory.createRequest(offset);
 
@@ -123,7 +132,23 @@ public class HttpSourceTask extends SourceTask {
 
         log.info("Request for offset {} yields {}/{} new records", offset.toMap(), unseenRecords.size(), records.size());
 
-        confirmationWindow = new ConfirmationWindow<>(extractOffsets(unseenRecords));
+        List<Map<String, ?>> recordOffsets = extractOffsets(unseenRecords);
+        confirmationWindow = new ConfirmationWindow<>(recordOffsets);
+
+        offset = recordOffsets.stream().findFirst().map(map -> Offset.updatePage(offset.toMap(), map, true, true, true)).orElse(offset);
+        Page pageResult = offset.getPage().orElse(null);
+        if (pageResult != null) {
+            if (pageResult.hasNext()) { // 进入翻页过程，并置下一页
+                paging = true;
+                int nextPi = pageResult.nextPageable().getPageNumber() + offset.getPp();
+                if (nextPi == requestPage.getPageNumber()){
+                    throw new IllegalStateException("请正确设置pp(首页序号)并清理Offset后重试");
+                }
+                offset = Offset.updatePi(offset.toMap(), nextPi);
+            } else { // 退出翻页过程
+                paging = false;
+            }
+        }
 
         return unseenRecords;
     }
@@ -149,21 +174,9 @@ public class HttpSourceTask extends SourceTask {
 
     @Override
     public void commit() {
-        offset = confirmationWindow.getLowWatermarkOffset()
-                .map(Offset::of)
-                .orElse(offset);
+        Offset commited = confirmationWindow.getLowWatermarkOffset().map(Offset::of).orElse(offset);
 
-        Page page = offset.getPager().orElse(null);
-        if (page != null) {
-            if (page.hasNext()) { // 进入翻页过程，并置下一页
-                paging = true;
-                offset = Offset.updateNextPi(offset, page.nextPageable().getPageNumber());
-            } else { // 退出翻页过程
-                paging = false;
-            }
-        }
-
-        log.debug("Offset set to {}", offset);
+        log.debug("Offset committed: {}", commited);
     }
 
     @Override
