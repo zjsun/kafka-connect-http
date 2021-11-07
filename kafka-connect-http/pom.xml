@@ -94,100 +94,117 @@
             <build>
                 <plugins>
                     <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>3.3.0</version>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.2.0</version>
                         <executions>
                             <execution>
-                                <id>assemble-confluent-hub</id>
+                                <id>datav-jar</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <goal>single</goal>
+                                    <goal>jar</goal>
                                 </goals>
                                 <configuration>
-                                    <finalName>${owner}-${project.artifactId}-${project.version}</finalName>
-                                    <appendAssemblyId>false</appendAssemblyId>
-                                    <descriptors>
-                                        <descriptor>src/assembly/package.xml</descriptor>
-                                    </descriptors>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>assemble-plugin</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <configuration>
-                                    <formats>
-                                        <format>tar.gz</format>
-                                    </formats>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                    <descriptors>
-                                        <descriptor>src/assembly/plugin.xml</descriptor>
-                                    </descriptors>
+                                    <classifier>datav</classifier>
                                 </configuration>
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <groupId>io.confluent</groupId>
-                        <version>0.12.0</version>
-                        <artifactId>kafka-connect-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <phase>prepare-package</phase>
-                                <goals>
-                                    <goal>kafka-connect</goal>
-                                </goals>
-                                <configuration>
-                                    <title>${project.name}</title>
-                                    <name>${project.artifactId}</name>
-                                    <sourceUrl>${project.parent.url}</sourceUrl>
-                                    <documentationUrl>${project.parent.url}</documentationUrl>
-                                    <description>${project.parent.description}</description>
-                                    <version>${project.version}</version>
-                                    <supportProviderName>${project.parent.organization.name}</supportProviderName>
-                                    <supportSummary>Cástor Rodríguez supports the HTTP plugin alongside other contributors of
-                                        this open source project.
-                                    </supportSummary>
-                                    <supportUrl>${project.parent.issueManagement.url}</supportUrl>
 
-                                    <ownerUsername>castorm</ownerUsername>
-                                    <ownerType>user</ownerType>
-                                    <ownerName>Cástor Rodríguez</ownerName>
-                                    <ownerUrl>https://castorm.es</ownerUrl>
+<!--                    <plugin>-->
+<!--                        <artifactId>maven-assembly-plugin</artifactId>-->
+<!--                        <version>3.3.0</version>-->
+<!--                        <executions>-->
+<!--                            <execution>-->
+<!--                                <id>assemble-confluent-hub</id>-->
+<!--                                <phase>package</phase>-->
+<!--                                <goals>-->
+<!--                                    <goal>single</goal>-->
+<!--                                </goals>-->
+<!--                                <configuration>-->
+<!--                                    <finalName>${owner}-${project.artifactId}-${project.version}</finalName>-->
+<!--                                    <appendAssemblyId>false</appendAssemblyId>-->
+<!--                                    <descriptors>-->
+<!--                                        <descriptor>src/assembly/package.xml</descriptor>-->
+<!--                                    </descriptors>-->
+<!--                                </configuration>-->
+<!--                            </execution>-->
+<!--                            <execution>-->
+<!--                                <id>assemble-plugin</id>-->
+<!--                                <phase>package</phase>-->
+<!--                                <goals>-->
+<!--                                    <goal>single</goal>-->
+<!--                                </goals>-->
+<!--                                <configuration>-->
+<!--                                    <formats>-->
+<!--                                        <format>tar.gz</format>-->
+<!--                                    </formats>-->
+<!--                                    <tarLongFileMode>posix</tarLongFileMode>-->
+<!--                                    <descriptors>-->
+<!--                                        <descriptor>src/assembly/plugin.xml</descriptor>-->
+<!--                                    </descriptors>-->
+<!--                                </configuration>-->
+<!--                            </execution>-->
+<!--                        </executions>-->
+<!--                    </plugin>-->
+<!--                    <plugin>-->
+<!--                        <groupId>io.confluent</groupId>-->
+<!--                        <version>0.12.0</version>-->
+<!--                        <artifactId>kafka-connect-maven-plugin</artifactId>-->
+<!--                        <executions>-->
+<!--                            <execution>-->
+<!--                                <phase>prepare-package</phase>-->
+<!--                                <goals>-->
+<!--                                    <goal>kafka-connect</goal>-->
+<!--                                </goals>-->
+<!--                                <configuration>-->
+<!--                                    <title>${project.name}</title>-->
+<!--                                    <name>${project.artifactId}</name>-->
+<!--                                    <sourceUrl>${project.parent.url}</sourceUrl>-->
+<!--                                    <documentationUrl>${project.parent.url}</documentationUrl>-->
+<!--                                    <description>${project.parent.description}</description>-->
+<!--                                    <version>${project.version}</version>-->
+<!--                                    <supportProviderName>${project.parent.organization.name}</supportProviderName>-->
+<!--                                    <supportSummary>Cástor Rodríguez supports the HTTP plugin alongside other contributors of-->
+<!--                                        this open source project.-->
+<!--                                    </supportSummary>-->
+<!--                                    <supportUrl>${project.parent.issueManagement.url}</supportUrl>-->
 
-                                    <componentTypes>
-                                        <componentType>source</componentType>
-                                    </componentTypes>
+<!--                                    <ownerUsername>castorm</ownerUsername>-->
+<!--                                    <ownerType>user</ownerType>-->
+<!--                                    <ownerName>Cástor Rodríguez</ownerName>-->
+<!--                                    <ownerUrl>https://castorm.es</ownerUrl>-->
 
-                                    <tags>
-                                        <tag>http</tag>
-                                        <tag>rest</tag>
-                                        <tag>api</tag>
-                                        <tag>json</tag>
-                                        <tag>cdc</tag>
-                                        <tag>change-data-capture</tag>
-                                    </tags>
+<!--                                    <componentTypes>-->
+<!--                                        <componentType>source</componentType>-->
+<!--                                    </componentTypes>-->
 
-                                    <requirements>
-                                        <requirement>HTTP resource to perform requests against</requirement>
-                                        <requirement>To perform change-data-capture with effectively-once delivery
-                                            guarantees, the HTTP resource should allow ordering and filtering by one or
-                                            more monotonically increasing properties such as sequence numbers or
-                                            timestamps
-                                        </requirement>
-                                    </requirements>
+<!--                                    <tags>-->
+<!--                                        <tag>http</tag>-->
+<!--                                        <tag>rest</tag>-->
+<!--                                        <tag>api</tag>-->
+<!--                                        <tag>json</tag>-->
+<!--                                        <tag>cdc</tag>-->
+<!--                                        <tag>change-data-capture</tag>-->
+<!--                                    </tags>-->
 
-                                    <deliveryGuarantee>
-                                        <deliveryGuarantee>exactlyOnce</deliveryGuarantee>
-                                    </deliveryGuarantee>
+<!--                                    <requirements>-->
+<!--                                        <requirement>HTTP resource to perform requests against</requirement>-->
+<!--                                        <requirement>To perform change-data-capture with effectively-once delivery-->
+<!--                                            guarantees, the HTTP resource should allow ordering and filtering by one or-->
+<!--                                            more monotonically increasing properties such as sequence numbers or-->
+<!--                                            timestamps-->
+<!--                                        </requirement>-->
+<!--                                    </requirements>-->
 
-                                    <confluentControlCenterIntegration>false</confluentControlCenterIntegration>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
+<!--                                    <deliveryGuarantee>-->
+<!--                                        <deliveryGuarantee>exactlyOnce</deliveryGuarantee>-->
+<!--                                    </deliveryGuarantee>-->
+
+<!--                                    <confluentControlCenterIntegration>false</confluentControlCenterIntegration>-->
+<!--                                </configuration>-->
+<!--                            </execution>-->
+<!--                        </executions>-->
+<!--                    </plugin>-->
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>license-maven-plugin</artifactId>
