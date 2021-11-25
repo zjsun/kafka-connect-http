@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static com.github.castorm.kafka.connect.common.VersionUtils.getVersion;
@@ -74,9 +75,10 @@ public class HttpSourceTask extends SourceTask {
     @Getter
     private Offset offset;
 
-    private boolean paging = false; // 正在翻页执行标记
+
     private HttpSourceConnectorConfig config;
-    private boolean firstPoll = true;
+    private final AtomicBoolean firstPoll = new AtomicBoolean(true);
+    private final AtomicBoolean paging = new AtomicBoolean(false); // 正在翻页执行标记
 
     HttpSourceTask(Function<Map<String, String>, HttpSourceConnectorConfig> configFactory) {
         this.configFactory = configFactory;
@@ -108,8 +110,8 @@ public class HttpSourceTask extends SourceTask {
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
 
-        if (!paging) {
-            if (firstPoll) { // 首次启动延迟：todo：改成配置项
+        if (!paging.get()) {
+            if (firstPoll.get()) { // 首次启动延迟：todo：改成配置项
                 Thread.sleep(5000);
             } else {
                 throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
@@ -117,7 +119,7 @@ public class HttpSourceTask extends SourceTask {
 
             offset = Offset.updatePage(offset.toMap(), config.getInitialOffset(), true, true, false); // 新迭代开始时重置翻页
         }
-        firstPoll = false;
+        firstPoll.set(false);
         Pageable requestPage = offset.getPageable().orElse(null);
 
         HttpRequest request = requestFactory.createRequest(offset);
@@ -139,14 +141,14 @@ public class HttpSourceTask extends SourceTask {
         Page pageResult = offset.getPage().orElse(null);
         if (pageResult != null) {
             if (pageResult.hasNext()) { // 进入翻页过程，并置下一页
-                paging = true;
+                paging.set(true);
                 int nextPi = pageResult.nextPageable().getPageNumber() + offset.getPp();
                 if (nextPi == requestPage.getPageNumber()){
                     throw new IllegalStateException("请正确设置pp(首页序号)并清理Offset后重试");
                 }
                 offset = Offset.updatePi(offset.toMap(), nextPi);
             } else { // 退出翻页过程
-                paging = false;
+                paging.set(false);
             }
         }
 
