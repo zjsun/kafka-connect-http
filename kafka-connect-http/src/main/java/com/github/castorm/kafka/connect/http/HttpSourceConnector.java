@@ -26,6 +26,7 @@ import org.apache.kafka.connect.source.SourceConnector;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.github.castorm.kafka.connect.common.VersionUtils.getVersion;
 import static java.util.stream.Collectors.toList;
@@ -34,6 +35,9 @@ import static java.util.stream.IntStream.range;
 public class HttpSourceConnector extends SourceConnector {
 
     private Map<String, String> settings;
+
+    // datav fix
+    public static final AtomicInteger taskCount = new AtomicInteger(1);
 
     @Override
     public void start(Map<String, String> settings) {
@@ -57,6 +61,7 @@ public class HttpSourceConnector extends SourceConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
+        taskCount.set(maxTasks);
         return range(0, maxTasks).boxed()
                 .map(__ -> settings)
                 .collect(toList());

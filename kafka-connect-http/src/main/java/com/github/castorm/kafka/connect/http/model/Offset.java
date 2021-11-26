@@ -40,10 +40,10 @@ public class Offset {
 
     private static final String TIMESTAMP_KEY = "timestamp";
 
-    private static final String KEY_PS = "ps";
-    private static final String KEY_PI = "pi";
-    private static final String KEY_PT = "pt";
-    private static final String KEY_PP = "pp";
+    private static final String KEY_PS = "ps"; // page size
+    private static final String KEY_PI = "pi"; // page index
+    private static final String KEY_PT = "pt"; // page total/count
+    private static final String KEY_PP = "pp"; // first page index
 
     private final Map<String, Object> properties;
 
@@ -74,6 +74,7 @@ public class Offset {
         if (ps && update.containsKey(KEY_PS)) props.put(KEY_PS, update.get(KEY_PS));
         if (pi && update.containsKey(KEY_PI)) props.put(KEY_PI, update.get(KEY_PI));
         if (pt && update.containsKey(KEY_PT)) props.put(KEY_PT, update.get(KEY_PT));
+        if (update.containsKey(KEY_PP)) props.put(KEY_PP, update.get(KEY_PP));
         return new Offset(props);
     }
 

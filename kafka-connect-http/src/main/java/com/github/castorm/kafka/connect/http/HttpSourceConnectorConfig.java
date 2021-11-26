@@ -33,6 +33,7 @@ import com.github.castorm.kafka.connect.http.response.spi.HttpResponseParser;
 import com.github.castorm.kafka.connect.timer.AdaptableIntervalTimer;
 import com.github.castorm.kafka.connect.timer.TimerThrottler;
 import com.github.castorm.kafka.connect.timer.spi.Timer;
+import com.github.castorm.kafka.connect.util.ConfigUtils;
 import lombok.Getter;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -77,7 +78,7 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     }
 
     public static ConfigDef config() {
-        return new ConfigDef()
+        ConfigDef config = new ConfigDef()
                 .define(TIMER, CLASS, AdaptableIntervalTimer.class, HIGH, "Poll Timer Class")
                 .define(CLIENT, CLASS, OkHttpClient.class, HIGH, "Request Client Class")
                 .define(REQUEST_FACTORY, CLASS, TemplateHttpRequestFactory.class, HIGH, "Request Factory Class")
@@ -85,5 +86,7 @@ class HttpSourceConnectorConfig extends AbstractConfig {
                 .define(RECORD_SORTER, CLASS, OrderDirectionSourceRecordSorter.class, LOW, "Record Sorter Class")
                 .define(RECORD_FILTER_FACTORY, CLASS, OffsetRecordFilterFactory.class, LOW, "Record Filter Factory Class")
                 .define(OFFSET_INITIAL, STRING, "", HIGH, "Starting offset");
+        ConfigUtils.configDkeMode(config);
+        return config;
     }
 }
