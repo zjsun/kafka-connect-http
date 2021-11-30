@@ -21,6 +21,7 @@ package com.github.castorm.kafka.connect.http;
  */
 
 import com.github.castorm.kafka.connect.http.ack.ConfirmationWindow;
+import com.github.castorm.kafka.connect.http.auth.spi.HttpAuthenticator;
 import com.github.castorm.kafka.connect.http.client.spi.HttpClient;
 import com.github.castorm.kafka.connect.http.model.HttpRequest;
 import com.github.castorm.kafka.connect.http.model.HttpResponse;
@@ -76,6 +77,8 @@ public class HttpSourceTask extends SourceTask {
 
     private ConfirmationWindow<Map<String, ?>> confirmationWindow = new ConfirmationWindow<>(emptyList());
 
+    private HttpAuthenticator authenticator;
+
     @Getter
     private Offset offset;
 
@@ -102,6 +105,12 @@ public class HttpSourceTask extends SourceTask {
         recordSorter = config.getRecordSorter();
         recordFilterFactory = config.getRecordFilterFactory();
         offset = loadOffset(config.getInitialOffset());
+
+        // pre auth
+        authenticator = requestExecutor.getAuthenticator();
+        if (authenticator != null){
+            offset = authenticator.authenticate(requestExecutor, offset);
+        }
     }
 
     private Offset loadOffset(Map<String, String> initialOffset) {
@@ -132,7 +141,7 @@ public class HttpSourceTask extends SourceTask {
             offset = Offset.updatePage(offset.toMap(), config.getInitialOffset(), true, true, false); // 新迭代开始时重置翻页
         }
 
-        Pageable requestPage = offset.getPageable().orElse(null);
+        Pageable pageRequest = offset.getPageable().orElse(null);
 
         HttpRequest request = requestFactory.createRequest(offset);
 
@@ -156,7 +165,7 @@ public class HttpSourceTask extends SourceTask {
             if (pageResult.hasNext()) { // 进入翻页过程，并置下一页
                 paginating.set(true);
                 int nextPi = pageResult.nextPageable().getPageNumber() + offset.getPp();
-                if (nextPi == requestPage.getPageNumber()) {
+                if (nextPi == pageRequest.getPageNumber()) {
                     throw new ConnectException("请正确设置pp(首页序号)并清理Offset后重试");
                 }
                 offset = Offset.updatePi(offset.toMap(), nextPi);

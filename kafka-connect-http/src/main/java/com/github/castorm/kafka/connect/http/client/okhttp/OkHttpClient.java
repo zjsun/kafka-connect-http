@@ -87,6 +87,11 @@ public class OkHttpClient implements HttpClient {
                 .orElse(request);
     }
 
+    @Override
+    public HttpAuthenticator getAuthenticator() {
+        return authenticator;
+    }
+
     private static HttpLoggingInterceptor createLoggingInterceptor() {
         if (log.isTraceEnabled()) {
             return new HttpLoggingInterceptor(log::trace).setLevel(BODY);

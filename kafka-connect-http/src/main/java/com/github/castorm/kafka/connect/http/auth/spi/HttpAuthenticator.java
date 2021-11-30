@@ -20,6 +20,8 @@ package com.github.castorm.kafka.connect.http.auth.spi;
  * #L%
  */
 
+import com.github.castorm.kafka.connect.http.client.spi.HttpClient;
+import com.github.castorm.kafka.connect.http.model.Offset;
 import org.apache.kafka.common.Configurable;
 
 import java.util.Map;
@@ -29,6 +31,10 @@ import java.util.Optional;
 public interface HttpAuthenticator extends Configurable {
 
     Optional<String> getAuthorizationHeader();
+
+    default Offset authenticate(HttpClient client, Offset offset){
+        return offset;
+    }
 
     default void configure(Map<String, ?> map) {
         // Do nothing

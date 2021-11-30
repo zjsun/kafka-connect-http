@@ -46,9 +46,13 @@ public class ConfigurableHttpAuthenticatorConfig extends AbstractConfig {
     private HttpAuthenticator getAuthenticator(Map<String, ?> originals) {
         switch (HttpAuthenticationType.valueOf(getString(AUTH_TYPE).toUpperCase())) {
             case BASIC:
-                BasicHttpAuthenticator auth = new BasicHttpAuthenticator();
-                auth.configure(originals);
-                return auth;
+                BasicHttpAuthenticator basicAuth = new BasicHttpAuthenticator();
+                basicAuth.configure(originals);
+                return basicAuth;
+            case TOKEN:
+                TokenHttpAuthenticator tokenAuth = new TokenHttpAuthenticator();
+                tokenAuth.configure(originals);
+                return tokenAuth;
             default:
                 return new NoneHttpAuthenticator();
         }

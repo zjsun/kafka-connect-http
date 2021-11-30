@@ -33,7 +33,7 @@ import static com.fasterxml.jackson.core.JsonPointer.compile;
 import static java.util.stream.StreamSupport.stream;
 
 @RequiredArgsConstructor
-class JacksonSerializer {
+public class JacksonSerializer {
 
     private static final JsonPointer JSON_ROOT = compile("/");
 
@@ -44,20 +44,20 @@ class JacksonSerializer {
     }
 
     @SneakyThrows(IOException.class)
-    JsonNode deserialize(byte[] body) {
+    public JsonNode deserialize(byte[] body) {
         return objectMapper.readTree(body);
     }
 
     @SneakyThrows(IOException.class)
-    String serialize(JsonNode node) {
+    public String serialize(JsonNode node) {
         return objectMapper.writeValueAsString(node);
     }
 
-    JsonNode getObjectAt(JsonNode node, JsonPointer pointer) {
+    public JsonNode getObjectAt(JsonNode node, JsonPointer pointer) {
         return getRequiredAt(node, pointer);
     }
 
-    Stream<JsonNode> getArrayAt(JsonNode node, JsonPointer pointer) {
+    public Stream<JsonNode> getArrayAt(JsonNode node, JsonPointer pointer) {
         JsonNode array = getRequiredAt(node, pointer);
         if (array.isArray()) {
             return stream(array.spliterator(), false);

@@ -20,6 +20,7 @@ package com.github.castorm.kafka.connect.http.client.spi;
  * #L%
  */
 
+import com.github.castorm.kafka.connect.http.auth.spi.HttpAuthenticator;
 import com.github.castorm.kafka.connect.http.model.HttpRequest;
 import com.github.castorm.kafka.connect.http.model.HttpResponse;
 import org.apache.kafka.common.Configurable;
@@ -34,5 +35,9 @@ public interface HttpClient extends Configurable {
 
     default void configure(Map<String, ?> map) {
         // Do nothing
+    }
+
+    default HttpAuthenticator getAuthenticator(){
+        return null;
     }
 }

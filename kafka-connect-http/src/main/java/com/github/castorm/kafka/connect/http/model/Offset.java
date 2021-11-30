@@ -82,6 +82,12 @@ public class Offset {
         return updatePage(origin, Collections.singletonMap(KEY_PI, String.valueOf(pi)), true, false, false);
     }
 
+    public static Offset update(Map<String, ?> origin, Map<String, ?> update){
+        Map<String, Object> props = new HashMap<>(origin);
+        props.putAll(update);
+        return new Offset(props);
+    }
+
     public Map<String, ?> toMap() {
         return properties;
     }
