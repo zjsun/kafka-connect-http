@@ -22,6 +22,7 @@ package com.github.castorm.kafka.connect.http.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -29,12 +30,15 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 
 @ToString
 @EqualsAndHashCode
-public class Offset {
+public class Offset implements Map<String, Object>{
 
     private static final String KEY_KEY = "key";
 
@@ -44,6 +48,9 @@ public class Offset {
     private static final String KEY_PI = "pi"; // page index
     private static final String KEY_PT = "pt"; // page total/count
     private static final String KEY_PP = "pp"; // first page index
+
+    public static final String KEY_SNAPSHOTING = "SNAPSHOTING";
+    public static final String KEY_PAGINATING = "PAGINATING";
 
     private final Map<String, Object> properties;
 
@@ -123,5 +130,113 @@ public class Offset {
 
     public int getPp() {
         return Integer.parseInt((String) properties.getOrDefault(KEY_PP, "0"));
+    }
+
+    public boolean isSnapshoting() {
+        return ((Boolean) properties.get(KEY_SNAPSHOTING)).booleanValue();
+    }
+
+    public void setSnapshoting(boolean snapshoting) {
+        properties.put(KEY_SNAPSHOTING, snapshoting);
+    }
+
+    public boolean isPaginating() {
+        return ((Boolean)properties.get(KEY_PAGINATING)).booleanValue();
+    }
+
+    public void setPaginating(boolean paginating) {
+        properties.put(KEY_PAGINATING, paginating);
+    }
+
+    public int size() {
+        return properties.size();
+    }
+
+    public boolean isEmpty() {
+        return properties.isEmpty();
+    }
+
+    public boolean containsKey(Object key) {
+        return properties.containsKey(key);
+    }
+
+    public boolean containsValue(Object value) {
+        return properties.containsValue(value);
+    }
+
+    public Object get(Object key) {
+        return properties.get(key);
+    }
+
+    public Object put(String key, Object value) {
+        return properties.put(key, value);
+    }
+
+    public Object remove(Object key) {
+        return properties.remove(key);
+    }
+
+    public void putAll(@NotNull Map<? extends String, ?> m) {
+        properties.putAll(m);
+    }
+
+    public void clear() {
+        properties.clear();
+    }
+
+    public Set<String> keySet() {
+        return properties.keySet();
+    }
+
+    public Collection<Object> values() {
+        return properties.values();
+    }
+
+    public Set<Map.Entry<String, Object>> entrySet() {
+        return properties.entrySet();
+    }
+
+    public Object getOrDefault(Object key, Object defaultValue) {
+        return properties.getOrDefault(key, defaultValue);
+    }
+
+    public void forEach(BiConsumer<? super String, ? super Object> action) {
+        properties.forEach(action);
+    }
+
+    public void replaceAll(BiFunction<? super String, ? super Object, ?> function) {
+        properties.replaceAll(function);
+    }
+
+    public Object putIfAbsent(String key, Object value) {
+        return properties.putIfAbsent(key, value);
+    }
+
+    public boolean remove(Object key, Object value) {
+        return properties.remove(key, value);
+    }
+
+    public boolean replace(String key, Object oldValue, Object newValue) {
+        return properties.replace(key, oldValue, newValue);
+    }
+
+    public Object replace(String key, Object value) {
+        return properties.replace(key, value);
+    }
+
+    public Object computeIfAbsent(String key, Function<? super String, ?> mappingFunction) {
+        return properties.computeIfAbsent(key, mappingFunction);
+    }
+
+    public Object computeIfPresent(String key, BiFunction<? super String, ? super Object, ?> remappingFunction) {
+        return properties.computeIfPresent(key, remappingFunction);
+    }
+
+    public Object compute(String key, BiFunction<? super String, ? super Object, ?> remappingFunction) {
+        return properties.compute(key, remappingFunction);
+    }
+
+    public Object merge(String key, Object value, BiFunction<? super Object, ? super Object, ?> remappingFunction) {
+        return properties.merge(key, value, remappingFunction);
     }
 }

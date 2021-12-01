@@ -45,11 +45,11 @@ import java.util.function.Function;
 
 import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownHeaders;
 import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownQueryParams;
+import static com.github.castorm.kafka.connect.util.ScriptUtils.evalScript;
 import static java.util.stream.Collectors.toMap;
 
 public class TokenHttpAuthenticator implements HttpAuthenticator {
 
-    public static final String VAR_NAME = "offset";
     private final Function<Map<String, ?>, TokenHttpAuthenticatorConfig> configFactory;
 
     private String method;
@@ -66,7 +66,6 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
     private Map<String, JsonPointer> resPointers;
     private String resBodyName;
     private boolean shouldAuth = false;
-    private final ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("JavaScript");
     private String scriptPre;
     private String scriptPost;
 
@@ -122,18 +121,6 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
             }
             offset = evalScript(scriptPost, offset);
         }
-        return offset;
-    }
-
-    @SneakyThrows
-    Offset evalScript(String script, Offset offset) {
-        if (StringUtils.isNotEmpty(script)) {
-            Bindings bindings = scriptEngine.createBindings();
-            bindings.put(VAR_NAME, new HashMap<>(offset.toMap()));
-            Map<String, Object> vars = (Map<String, Object>) scriptEngine.eval(script + ";" + VAR_NAME, bindings);
-            offset = Offset.update(offset.toMap(), vars);
-        }
-
         return offset;
     }
 

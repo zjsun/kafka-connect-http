@@ -33,6 +33,7 @@ import com.github.castorm.kafka.connect.http.response.spi.HttpResponseParser;
 import com.github.castorm.kafka.connect.timer.TimerThrottler;
 import com.github.castorm.kafka.connect.util.ConfigUtils;
 import com.github.castorm.kafka.connect.util.ExitUtils;
+import com.github.castorm.kafka.connect.util.ScriptUtils;
 import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +50,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static com.github.castorm.kafka.connect.common.VersionUtils.getVersion;
@@ -60,6 +60,7 @@ import static java.util.stream.Collectors.toList;
 
 @Slf4j
 public class HttpSourceTask extends SourceTask {
+
 
     private final Function<Map<String, String>, HttpSourceConnectorConfig> configFactory;
 
@@ -83,8 +84,6 @@ public class HttpSourceTask extends SourceTask {
     private Offset offset;
 
     private HttpSourceConnectorConfig config;
-    private final AtomicBoolean snapshoting = new AtomicBoolean(true); // 正在初始快照（首次迭代）
-    private final AtomicBoolean paginating = new AtomicBoolean(false); // 正在翻页执行标记
 
     HttpSourceTask(Function<Map<String, String>, HttpSourceConnectorConfig> configFactory) {
         this.configFactory = configFactory;
@@ -106,16 +105,28 @@ public class HttpSourceTask extends SourceTask {
         recordFilterFactory = config.getRecordFilterFactory();
         offset = loadOffset(config.getInitialOffset());
 
+        offset.setSnapshoting(true);
+        offset.setPaginating(false);
+
+
         // pre auth
         authenticator = requestExecutor.getAuthenticator();
-        if (authenticator != null){
+        if (authenticator != null) {
             offset = authenticator.authenticate(requestExecutor, offset);
         }
+
     }
 
+    // 初始化offset
     private Offset loadOffset(Map<String, String> initialOffset) {
-        Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
-        return Offset.of(!restoredOffset.isEmpty() ? restoredOffset : initialOffset);
+        if (ConfigUtils.isDkeTaskMode(config)) {
+            Offset offset = Offset.of(initialOffset);
+            offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
+            return offset;
+        } else {
+            Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
+            return Offset.of(!restoredOffset.isEmpty() ? restoredOffset : initialOffset);
+        }
     }
 
     void checkIfTaskDone() {
@@ -130,19 +141,17 @@ public class HttpSourceTask extends SourceTask {
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         // 1) 每次分页迭代开始需要重置翻页参数；2）快照阶段不使用间隔等待
-        if (!paginating.get()) {
-            if (snapshoting.get()) {
+        if (!offset.isPaginating()) {
+            if (offset.isSnapshoting()) {
                 Utils.sleep(2000); // 延迟开始快照
             } else {
                 checkIfTaskDone();
                 throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
             }
-
-            offset = Offset.updatePage(offset.toMap(), config.getInitialOffset(), true, true, false); // 新迭代开始时重置翻页
         }
 
         Pageable pageRequest = offset.getPageable().orElse(null);
-
+        log.info("Requesting for offset {}", offset.toMap());
         HttpRequest request = requestFactory.createRequest(offset);
 
         HttpResponse response = execute(request);
@@ -153,28 +162,33 @@ public class HttpSourceTask extends SourceTask {
                 .filter(recordFilterFactory.create(offset))
                 .collect(toList());
 
-        log.info("Request for offset {} yields {}/{} new records", offset.toMap(), unseenRecords.size(), records.size());
+        log.info("Requested {}/{} new records", unseenRecords.size(), records.size());
 
         List<Map<String, ?>> recordOffsets = extractOffsets(unseenRecords);
         confirmationWindow = new ConfirmationWindow<>(recordOffsets);
 
         offset = recordOffsets.stream().findFirst().map(map -> Offset.updatePage(offset.toMap(), map, true, true, true)).orElse(offset);
 
-        Page pageResult = offset.getPage().orElse(null);
-        if (pageResult != null) {
-            if (pageResult.hasNext()) { // 进入翻页过程，并置下一页
-                paginating.set(true);
-                int nextPi = pageResult.nextPageable().getPageNumber() + offset.getPp();
-                if (nextPi == pageRequest.getPageNumber()) {
-                    throw new ConnectException("请正确设置pp(首页序号)并清理Offset后重试");
+        if (config.hasPollScriptPost()) {
+            offset = ScriptUtils.evalScript(config.getPollScriptPost(), offset);
+        }else {
+            Page pageResult = offset.getPage().orElse(null);
+            if (pageResult != null) {
+                if (pageResult.hasNext()) { // 进入翻页过程，并置下一页
+                    offset.setPaginating(true);
+                    int nextPi = pageResult.nextPageable().getPageNumber() + offset.getPp();
+                    if (nextPi == pageRequest.getPageNumber()) {
+                        throw new ConnectException("请正确设置pp(首页序号)并清理Offset后重试");
+                    }
+                    offset = Offset.updatePi(offset.toMap(), nextPi);
+                } else { // 退出翻页过程，退出快照过程
+                    offset.setPaginating(false);
+                    offset.setSnapshoting(false);
                 }
-                offset = Offset.updatePi(offset.toMap(), nextPi);
-            } else { // 退出翻页过程，退出快照过程
-                paginating.set(false);
-                snapshoting.set(false);
+            } else { // 没有翻页退出快照过程
+                offset.setPaginating(false);
+                offset.setSnapshoting(false);
             }
-        } else { // 没有翻页退出快照过程
-            snapshoting.set(false);
         }
 
         return unseenRecords;

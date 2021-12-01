@@ -35,6 +35,7 @@ import com.github.castorm.kafka.connect.timer.TimerThrottler;
 import com.github.castorm.kafka.connect.timer.spi.Timer;
 import com.github.castorm.kafka.connect.util.ConfigUtils;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
@@ -56,6 +57,8 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     private static final String RECORD_SORTER = "http.record.sorter";
     private static final String RECORD_FILTER_FACTORY = "http.record.filter.factory";
     private static final String OFFSET_INITIAL = "http.offset.initial";
+    private static final String REQUEST_POLL_SCRIPT_INIT = "http.request.poll.script.init";
+    private static final String REQUEST_POLL_SCRIPT_POST = "http.request.poll.script.post";
 
     private final TimerThrottler throttler;
     private final HttpRequestFactory requestFactory;
@@ -64,6 +67,8 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     private final SourceRecordFilterFactory recordFilterFactory;
     private final SourceRecordSorter recordSorter;
     private final Map<String, String> initialOffset;
+    private final String pollScriptInit;
+    private final String pollScriptPost;
 
     HttpSourceConnectorConfig(Map<String, ?> originals) {
         super(config(), originals);
@@ -75,6 +80,8 @@ class HttpSourceConnectorConfig extends AbstractConfig {
         recordSorter = getConfiguredInstance(RECORD_SORTER, SourceRecordSorter.class);
         recordFilterFactory = getConfiguredInstance(RECORD_FILTER_FACTORY, SourceRecordFilterFactory.class);
         initialOffset = breakDownMap(getString(OFFSET_INITIAL));
+        pollScriptInit = getString(REQUEST_POLL_SCRIPT_INIT);
+        pollScriptPost = getString(REQUEST_POLL_SCRIPT_POST);
     }
 
     public static ConfigDef config() {
@@ -85,8 +92,18 @@ class HttpSourceConnectorConfig extends AbstractConfig {
                 .define(RESPONSE_PARSER, CLASS, PolicyHttpResponseParser.class, HIGH, "Response Parser Class")
                 .define(RECORD_SORTER, CLASS, OrderDirectionSourceRecordSorter.class, LOW, "Record Sorter Class")
                 .define(RECORD_FILTER_FACTORY, CLASS, OffsetRecordFilterFactory.class, LOW, "Record Filter Factory Class")
-                .define(OFFSET_INITIAL, STRING, "", HIGH, "Starting offset");
+                .define(OFFSET_INITIAL, STRING, "", HIGH, "Starting offset")
+                .define(REQUEST_POLL_SCRIPT_INIT, STRING, "", LOW, "")
+                .define(REQUEST_POLL_SCRIPT_POST, STRING, "", LOW, "");
         ConfigUtils.configDkeMode(config);
         return config;
+    }
+
+    public boolean hasPollScriptInit(){
+        return StringUtils.isNotEmpty(pollScriptInit);
+    }
+
+    public boolean hasPollScriptPost(){
+        return StringUtils.isNotEmpty(pollScriptPost);
     }
 }
