@@ -1,11 +1,32 @@
 package com.github.castorm.kafka.connect.http.auth;
 
+/*-
+ * #%L
+ * Kafka Connect HTTP
+ * %%
+ * Copyright (C) 2020 - 2021 Cástor Rodríguez
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 import com.fasterxml.jackson.core.JsonPointer;
 import com.github.castorm.kafka.connect.http.request.template.freemarker.FreeMarkerTemplateFactory;
 import com.github.castorm.kafka.connect.http.request.template.spi.TemplateFactory;
 import lombok.Getter;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.springframework.util.StringUtils;
 
 import java.util.AbstractMap;
 import java.util.Map;
@@ -32,6 +53,9 @@ public class TokenHttpAuthenticatorConfig extends AbstractConfig {
     private static final String RES_POINTER = "http.auth.response.pointer";
     private static final String RES_BODY_NAME = "http.auth.response.body.name";
 
+    private static final String SCRIPT_PRE = "http.auth.script.pre";
+    private static final String SCRIPT_POST = "http.auth.script.post";
+
     private final String url;
 
     private final String method;
@@ -47,6 +71,9 @@ public class TokenHttpAuthenticatorConfig extends AbstractConfig {
     private final Map<String, JsonPointer> resPointers;
     private final String resBodyName;
 
+    private final String scriptPre;
+    private final String scriptPost;
+
     TokenHttpAuthenticatorConfig(Map<String, ?> originals) {
         super(config(), originals);
         url = getString(REQ_URL);
@@ -60,6 +87,9 @@ public class TokenHttpAuthenticatorConfig extends AbstractConfig {
                 .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), compile(entry.getValue())))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
         resBodyName = getString(RES_BODY_NAME);
+
+        scriptPre = getString(SCRIPT_PRE);
+        scriptPost = getString(SCRIPT_POST);
     }
 
     public static ConfigDef config() {
@@ -72,6 +102,8 @@ public class TokenHttpAuthenticatorConfig extends AbstractConfig {
                 .define(REQ_TEMPLATE_FACTORY, CLASS, FreeMarkerTemplateFactory.class, LOW, "Auth Template Factory Class")
                 .define(RES_POINTER, STRING, "", MEDIUM, "Auth Response JsonPointers")
                 .define(RES_BODY_NAME, STRING, "", MEDIUM, "Auth Response Body Name")
+                .define(SCRIPT_PRE, STRING, "", LOW, "Auth pre-script")
+                .define(SCRIPT_POST, STRING, "", LOW, "Auth post-script")
                 ;
     }
 }

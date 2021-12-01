@@ -1,5 +1,25 @@
 package com.github.castorm.kafka.connect.http.auth;
 
+/*-
+ * #%L
+ * Kafka Connect HTTP
+ * %%
+ * Copyright (C) 2020 - 2021 Cástor Rodríguez
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.castorm.kafka.connect.http.auth.spi.HttpAuthenticator;
@@ -15,6 +35,10 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
+import javax.script.Bindings;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -25,6 +49,7 @@ import static java.util.stream.Collectors.toMap;
 
 public class TokenHttpAuthenticator implements HttpAuthenticator {
 
+    public static final String VAR_NAME = "offset";
     private final Function<Map<String, ?>, TokenHttpAuthenticatorConfig> configFactory;
 
     private String method;
@@ -37,10 +62,13 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
 
     private Template bodyTpl;
 
-    private JacksonSerializer serializer;
+    private final JacksonSerializer serializer = new JacksonSerializer();
     private Map<String, JsonPointer> resPointers;
     private String resBodyName;
     private boolean shouldAuth = false;
+    private final ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("JavaScript");
+    private String scriptPre;
+    private String scriptPost;
 
     public TokenHttpAuthenticator() {
         this(TokenHttpAuthenticatorConfig::new);
@@ -64,7 +92,8 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
 
         resPointers = config.getResPointers();
         resBodyName = config.getResBodyName();
-        serializer = new JacksonSerializer();
+        scriptPre = config.getScriptPre();
+        scriptPost = config.getScriptPost();
     }
 
     HttpRequest createRequest(Offset offset) {
@@ -81,6 +110,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
     @Override
     public Offset authenticate(HttpClient client, Offset offset) {
         if (shouldAuth) {
+            offset = evalScript(scriptPre, offset);
             HttpRequest request = createRequest(offset);
             HttpResponse response = client.execute(request);
             if (!CollectionUtils.isEmpty(resPointers)) {
@@ -90,7 +120,20 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
             } else if (StringUtils.isNotEmpty(resBodyName)) {
                 offset = Offset.update(offset.toMap(), Collections.singletonMap(resBodyName, new String(response.getBody())));
             }
+            offset = evalScript(scriptPost, offset);
         }
+        return offset;
+    }
+
+    @SneakyThrows
+    Offset evalScript(String script, Offset offset) {
+        if (StringUtils.isNotEmpty(script)) {
+            Bindings bindings = scriptEngine.createBindings();
+            bindings.put(VAR_NAME, new HashMap<>(offset.toMap()));
+            Map<String, Object> vars = (Map<String, Object>) scriptEngine.eval(script + ";" + VAR_NAME, bindings);
+            offset = Offset.update(offset.toMap(), vars);
+        }
+
         return offset;
     }
 
