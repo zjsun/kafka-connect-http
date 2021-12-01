@@ -44,7 +44,7 @@ public class FreeMarkerTemplateFactory implements TemplateFactory {
 
     @Override
     public Template create(String template) {
-        return offset -> apply(createTemplate(template), new TemplateModel(offset.toMap()));
+        return offset -> apply(createTemplate(template), new TemplateModel(offset));
     }
 
     @SneakyThrows(IOException.class)
@@ -61,7 +61,6 @@ public class FreeMarkerTemplateFactory implements TemplateFactory {
 
     @Value
     public static class TemplateModel {
-
         Map<String, ?> offset;
     }
 }

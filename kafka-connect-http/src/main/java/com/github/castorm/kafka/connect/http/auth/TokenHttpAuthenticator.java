@@ -9,9 +9,9 @@ package com.github.castorm.kafka.connect.http.auth;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,10 +35,6 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
-import javax.script.Bindings;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -114,10 +110,10 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
             HttpResponse response = client.execute(request);
             if (!CollectionUtils.isEmpty(resPointers)) {
                 JsonNode jsonBody = serializer.deserialize(response.getBody());
-                offset = Offset.update(offset.toMap(), resPointers.entrySet().stream()
+                offset.update(resPointers.entrySet().stream()
                         .collect(toMap(Map.Entry::getKey, entry -> serializer.getObjectAt(jsonBody, entry.getValue()).asText())));
             } else if (StringUtils.isNotEmpty(resBodyName)) {
-                offset = Offset.update(offset.toMap(), Collections.singletonMap(resBodyName, new String(response.getBody())));
+                offset.update(Collections.singletonMap(resBodyName, new String(response.getBody())));
             }
             offset = evalScript(scriptPost, offset);
         }

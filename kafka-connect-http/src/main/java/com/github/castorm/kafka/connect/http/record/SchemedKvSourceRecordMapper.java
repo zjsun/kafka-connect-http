@@ -84,7 +84,7 @@ public class SchemedKvSourceRecordMapper implements KvSourceRecordMapper {
 
         return new SourceRecord(
                 sourcePartition,
-                offset.toMap(),
+                offset,
                 config.getTopic(),
                 null,
                 key.schema(),

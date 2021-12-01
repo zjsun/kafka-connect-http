@@ -20,8 +20,7 @@ package com.github.castorm.kafka.connect.http.model;
  * #L%
  */
 
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import com.google.common.collect.Maps;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -29,16 +28,19 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 
-@ToString
-@EqualsAndHashCode
-public class Offset implements Map<String, Object>{
+public class Offset implements Map<String, Object> {
 
     private static final String KEY_KEY = "key";
 
@@ -52,10 +54,10 @@ public class Offset implements Map<String, Object>{
     public static final String KEY_SNAPSHOTING = "SNAPSHOTING";
     public static final String KEY_PAGINATING = "PAGINATING";
 
-    private final Map<String, Object> properties;
+    private final Map<String, Object> properties = Maps.newConcurrentMap();
 
     private Offset(Map<String, ?> properties) {
-        this.properties = (Map<String, Object>) properties;
+        this.properties.putAll(properties);
     }
 
     public static Offset of(Map<String, ?> properties) {
@@ -76,27 +78,22 @@ public class Offset implements Map<String, Object>{
     }
 
     // 更新分页信息
-    public static Offset updatePage(Map<String, ?> origin, Map<String, ?> update, boolean pi, boolean ps, boolean pt) {
-        Map<String, Object> props = new HashMap<>(origin);
-        if (ps && update.containsKey(KEY_PS)) props.put(KEY_PS, update.get(KEY_PS));
-        if (pi && update.containsKey(KEY_PI)) props.put(KEY_PI, update.get(KEY_PI));
-        if (pt && update.containsKey(KEY_PT)) props.put(KEY_PT, update.get(KEY_PT));
-        if (update.containsKey(KEY_PP)) props.put(KEY_PP, update.get(KEY_PP));
-        return new Offset(props);
+    public Offset updatePage(Map<String, ?> update, boolean pi, boolean ps, boolean pt) {
+        if (ps && update.containsKey(KEY_PS)) this.put(KEY_PS, update.get(KEY_PS));
+        if (pi && update.containsKey(KEY_PI)) this.put(KEY_PI, update.get(KEY_PI));
+        if (pt && update.containsKey(KEY_PT)) this.put(KEY_PT, update.get(KEY_PT));
+        if (update.containsKey(KEY_PP)) this.put(KEY_PP, update.get(KEY_PP));
+        return this;
     }
 
-    public static Offset updatePi(Map<String, ?> origin, int pi) {
-        return updatePage(origin, Collections.singletonMap(KEY_PI, String.valueOf(pi)), true, false, false);
+    public Offset updatePi(int pi) {
+        this.put(KEY_PI, pi);
+        return this;
     }
 
-    public static Offset update(Map<String, ?> origin, Map<String, ?> update){
-        Map<String, Object> props = new HashMap<>(origin);
-        props.putAll(update);
-        return new Offset(props);
-    }
-
-    public Map<String, ?> toMap() {
-        return properties;
+    public Offset update(Map<String, ?> update) {
+        this.putAll(update);
+        return this;
     }
 
     public Optional<String> getKey() {
@@ -141,7 +138,7 @@ public class Offset implements Map<String, Object>{
     }
 
     public boolean isPaginating() {
-        return ((Boolean)properties.get(KEY_PAGINATING)).booleanValue();
+        return ((Boolean) properties.get(KEY_PAGINATING)).booleanValue();
     }
 
     public void setPaginating(boolean paginating) {
@@ -238,5 +235,20 @@ public class Offset implements Map<String, Object>{
 
     public Object merge(String key, Object value, BiFunction<? super Object, ? super Object, ?> remappingFunction) {
         return properties.merge(key, value, remappingFunction);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return properties.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return properties.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return properties.toString();
     }
 }

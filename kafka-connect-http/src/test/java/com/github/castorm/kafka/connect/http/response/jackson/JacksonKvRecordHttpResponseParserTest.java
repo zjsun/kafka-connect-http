@@ -143,7 +143,7 @@ class JacksonKvRecordHttpResponseParserTest {
 
         givenRecords(Stream.of(record.withOffset(ImmutableMap.of("offset-key", "offset-value"))));
 
-        assertThat(parser.parse(response).stream().findFirst().get().getOffset().toMap().get("offset-key")).isEqualTo("offset-value");
+        assertThat(parser.parse(response).stream().findFirst().get().getOffset().get("offset-key")).isEqualTo("offset-value");
     }
 
     @Test

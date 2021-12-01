@@ -55,8 +55,8 @@ public class BackwardsCompatibleFreeMarkerTemplateFactory implements TemplateFac
     }
 
     private static Map<String, Object> createModel(Offset offset) {
-        Map<String, Object> model = new HashMap<>(offset.toMap());
-        model.put("offset", offset.toMap());
+        Map<String, Object> model = new HashMap<>(offset);
+        model.put("offset", offset);
         return model;
     }
 

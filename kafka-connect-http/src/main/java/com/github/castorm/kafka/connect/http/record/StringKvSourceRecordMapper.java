@@ -73,7 +73,7 @@ public class StringKvSourceRecordMapper implements KvSourceRecordMapper {
 
         return new SourceRecord(
                 sourcePartition,
-                offset.toMap(),
+                offset,
                 config.getTopic(),
                 null,
                 keySchema,

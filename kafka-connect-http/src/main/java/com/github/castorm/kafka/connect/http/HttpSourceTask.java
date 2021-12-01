@@ -38,7 +38,6 @@ import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -76,7 +75,7 @@ public class HttpSourceTask extends SourceTask {
 
     private SourceRecordFilterFactory recordFilterFactory;
 
-//    private ConfirmationWindow<Map<String, ?>> confirmationWindow = new ConfirmationWindow<>(emptyList());
+    private ConfirmationWindow<Map<String, ?>> confirmationWindow = new ConfirmationWindow<>(emptyList());
 
     private HttpAuthenticator authenticator;
 
@@ -119,14 +118,14 @@ public class HttpSourceTask extends SourceTask {
 
     // 初始化offset
     private Offset loadOffset(Map<String, String> initialOffset) {
+        Offset offset = Offset.of(initialOffset);
         if (ConfigUtils.isDkeTaskMode(config)) {
-            Offset offset = Offset.of(initialOffset);
             offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
-            return offset;
         } else {
             Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
-            return Offset.of(!restoredOffset.isEmpty() ? restoredOffset : initialOffset);
+            offset.update(restoredOffset);
         }
+        return offset;
     }
 
     void checkIfTaskDone() {
@@ -141,17 +140,13 @@ public class HttpSourceTask extends SourceTask {
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         // 1) 每次分页迭代开始需要重置翻页参数；2）快照阶段不使用间隔等待
-        if (!offset.isPaginating()) {
-            if (offset.isSnapshoting()) {
-                Utils.sleep(2000); // 延迟开始快照
-            } else {
-                checkIfTaskDone();
-                throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
-            }
+        if (!offset.isPaginating() && !offset.isSnapshoting()) {
+            checkIfTaskDone();
+            throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
         }
 
         Pageable pageRequest = offset.getPageable().orElse(null);
-        log.info("Requesting for offset {}", offset.toMap());
+        log.info("Requesting for offset {}", offset);
         HttpRequest request = requestFactory.createRequest(offset);
 
         HttpResponse response = execute(request);
@@ -165,13 +160,12 @@ public class HttpSourceTask extends SourceTask {
         log.info("Requested {}/{} new records", unseenRecords.size(), records.size());
 
         List<Map<String, ?>> recordOffsets = extractOffsets(unseenRecords);
-//        confirmationWindow = new ConfirmationWindow<>(recordOffsets);
-
-        offset = recordOffsets.stream().findFirst().map(map -> Offset.updatePage(offset.toMap(), map, true, true, true)).orElse(offset);
+        confirmationWindow = new ConfirmationWindow<>(recordOffsets);
 
         if (config.hasPollScriptPost()) {
             offset = ScriptUtils.evalScript(config.getPollScriptPost(), offset);
-        }else {
+        } else {
+            offset = recordOffsets.stream().findFirst().map(map -> offset.updatePage(map, true, true, true)).orElse(offset);
             Page pageResult = offset.getPage().orElse(null);
             if (pageResult != null) {
                 if (pageResult.hasNext()) { // 进入翻页过程，并置下一页
@@ -180,7 +174,7 @@ public class HttpSourceTask extends SourceTask {
                     if (nextPi == pageRequest.getPageNumber()) {
                         throw new ConnectException("请正确设置pp(首页序号)并清理Offset后重试");
                     }
-                    offset = Offset.updatePi(offset.toMap(), nextPi);
+                    offset.updatePi(nextPi);
                 } else { // 退出翻页过程，退出快照过程
                     offset.setPaginating(false);
                     offset.setSnapshoting(false);
@@ -210,15 +204,16 @@ public class HttpSourceTask extends SourceTask {
 
     @Override
     public void commitRecord(SourceRecord record, RecordMetadata metadata) {
-//        confirmationWindow.confirm(record.sourceOffset());
+        confirmationWindow.confirm(record.sourceOffset());
     }
 
     @Override
     public void commit() {
-//        Utils.sleep(1000);
-//        Offset commited = confirmationWindow.getLowWatermarkOffset().map(Offset::of).orElse(offset);
-//
-//        log.debug("Offset committed: {}", commited);
+        Offset commited = confirmationWindow.getLowWatermarkOffset().map(Offset::of).orElse(offset);
+        log.debug("Offset committed: {}", commited);
+        if (!ConfigUtils.isDkeTaskMode(config)) {
+            offset.update(commited);
+        }
     }
 
     @Override

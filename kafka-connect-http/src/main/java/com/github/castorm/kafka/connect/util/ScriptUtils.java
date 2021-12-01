@@ -48,7 +48,7 @@ public class ScriptUtils {
             bindings.put(VAR_NAME, offset);
             bindings.put(VAR_LOG, log);
             Map<String, Object> vars = (Map<String, Object>) scriptEngine.eval(script + ";" + VAR_NAME, bindings);
-            offset = Offset.update(offset.toMap(), vars);
+            offset.update(vars);
         }
 
         return offset;

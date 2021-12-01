@@ -71,7 +71,7 @@ class StringKvSourceRecordMapperTest {
 
     @Test
     void givenOffset_whenMap_thenOffsetMapped() {
-        assertThat(mapper.map(record.withOffset(offset)).sourceOffset()).isEqualTo(offset.toMap());
+        assertThat(mapper.map(record.withOffset(offset)).sourceOffset()).isEqualTo(offset);
     }
 
     @Test
