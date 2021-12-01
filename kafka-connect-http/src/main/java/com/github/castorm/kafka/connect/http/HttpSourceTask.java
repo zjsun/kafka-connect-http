@@ -76,7 +76,7 @@ public class HttpSourceTask extends SourceTask {
 
     private SourceRecordFilterFactory recordFilterFactory;
 
-    private ConfirmationWindow<Map<String, ?>> confirmationWindow = new ConfirmationWindow<>(emptyList());
+//    private ConfirmationWindow<Map<String, ?>> confirmationWindow = new ConfirmationWindow<>(emptyList());
 
     private HttpAuthenticator authenticator;
 
@@ -165,7 +165,7 @@ public class HttpSourceTask extends SourceTask {
         log.info("Requested {}/{} new records", unseenRecords.size(), records.size());
 
         List<Map<String, ?>> recordOffsets = extractOffsets(unseenRecords);
-        confirmationWindow = new ConfirmationWindow<>(recordOffsets);
+//        confirmationWindow = new ConfirmationWindow<>(recordOffsets);
 
         offset = recordOffsets.stream().findFirst().map(map -> Offset.updatePage(offset.toMap(), map, true, true, true)).orElse(offset);
 
@@ -210,14 +210,15 @@ public class HttpSourceTask extends SourceTask {
 
     @Override
     public void commitRecord(SourceRecord record, RecordMetadata metadata) {
-        confirmationWindow.confirm(record.sourceOffset());
+//        confirmationWindow.confirm(record.sourceOffset());
     }
 
     @Override
     public void commit() {
-        Offset commited = confirmationWindow.getLowWatermarkOffset().map(Offset::of).orElse(offset);
-
-        log.debug("Offset committed: {}", commited);
+//        Utils.sleep(1000);
+//        Offset commited = confirmationWindow.getLowWatermarkOffset().map(Offset::of).orElse(offset);
+//
+//        log.debug("Offset committed: {}", commited);
     }
 
     @Override
