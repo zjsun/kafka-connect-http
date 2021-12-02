@@ -9,9 +9,9 @@ package com.github.castorm.kafka.connect.http.record;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,11 +20,15 @@ package com.github.castorm.kafka.connect.http.record;
  * #L%
  */
 
+import com.github.castorm.kafka.connect.http.model.Offset;
 import com.github.castorm.kafka.connect.http.record.spi.SourceRecordSorter;
+import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.compare.ObjectToStringComparator;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -39,6 +43,10 @@ public class OrderDirectionSourceRecordSorter implements SourceRecordSorter {
     private final Function<Map<String, ?>, OrderDirectionSourceRecordSorterConfig> configFactory;
 
     private OrderDirection orderDirection;
+
+    private static final Comparator<SourceRecord> OFFSET_TIMESTAMP_COMPARATOR = Comparator.comparingLong(
+            r -> r.timestamp() == null ? 0 : r.timestamp()
+    );
 
     public OrderDirectionSourceRecordSorter() {
         this(OrderDirectionSourceRecordSorterConfig::new);
@@ -55,13 +63,15 @@ public class OrderDirectionSourceRecordSorter implements SourceRecordSorter {
     }
 
     private static List<SourceRecord> sortWithDirection(List<SourceRecord> records, OrderDirection direction) {
+        List<SourceRecord> sortList = new ArrayList<>(records);
         switch (direction) {
             case DESC:
-                List<SourceRecord> reversed = new ArrayList<>(records);
-                reverse(reversed);
-                return reversed;
+                Collections.sort(sortList, OFFSET_TIMESTAMP_COMPARATOR);
+                reverse(sortList);
+                return sortList;
             case ASC:
-                return records;
+                Collections.sort(sortList, OFFSET_TIMESTAMP_COMPARATOR);
+                return sortList;
             case IMPLICIT:
             default:
                 return sortWithDirection(records, getImplicitDirection(records));

@@ -42,9 +42,9 @@ import static java.util.Optional.ofNullable;
 
 public class Offset implements Map<String, Object> {
 
-    private static final String KEY_KEY = "key";
+    public static final String KEY_KEY = "key";
 
-    private static final String TIMESTAMP_KEY = "timestamp";
+    public static final String TIMESTAMP_KEY = "timestamp";
 
     private static final String KEY_PS = "ps"; // page size
     private static final String KEY_PI = "pi"; // page index

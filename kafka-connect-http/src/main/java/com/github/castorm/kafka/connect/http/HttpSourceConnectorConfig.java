@@ -45,6 +45,8 @@ import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownMap;
 import static org.apache.kafka.common.config.ConfigDef.Importance.HIGH;
 import static org.apache.kafka.common.config.ConfigDef.Importance.LOW;
 import static org.apache.kafka.common.config.ConfigDef.Type.CLASS;
+import static org.apache.kafka.common.config.ConfigDef.Type.INT;
+import static org.apache.kafka.common.config.ConfigDef.Type.LONG;
 import static org.apache.kafka.common.config.ConfigDef.Type.STRING;
 
 @Getter
@@ -58,7 +60,9 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     private static final String RECORD_FILTER_FACTORY = "http.record.filter.factory";
     private static final String OFFSET_INITIAL = "http.offset.initial";
     private static final String REQUEST_POLL_SCRIPT_INIT = "http.request.poll.script.init";
+    private static final String REQUEST_POLL_SCRIPT_PRE = "http.request.poll.script.pre";
     private static final String REQUEST_POLL_SCRIPT_POST = "http.request.poll.script.post";
+    private static final String TASK_EXIT_WAIT = "http.task.exit.wait";
 
     private final TimerThrottler throttler;
     private final HttpRequestFactory requestFactory;
@@ -68,7 +72,9 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     private final SourceRecordSorter recordSorter;
     private final Map<String, String> initialOffset;
     private final String pollScriptInit;
+    private final String pollScriptPre;
     private final String pollScriptPost;
+    private final long taskExitWait;
 
     HttpSourceConnectorConfig(Map<String, ?> originals) {
         super(config(), originals);
@@ -81,7 +87,10 @@ class HttpSourceConnectorConfig extends AbstractConfig {
         recordFilterFactory = getConfiguredInstance(RECORD_FILTER_FACTORY, SourceRecordFilterFactory.class);
         initialOffset = breakDownMap(getString(OFFSET_INITIAL));
         pollScriptInit = getString(REQUEST_POLL_SCRIPT_INIT);
+        pollScriptPre = getString(REQUEST_POLL_SCRIPT_PRE);
         pollScriptPost = getString(REQUEST_POLL_SCRIPT_POST);
+        taskExitWait = getLong(TASK_EXIT_WAIT);
+
     }
 
     public static ConfigDef config() {
@@ -94,7 +103,10 @@ class HttpSourceConnectorConfig extends AbstractConfig {
                 .define(RECORD_FILTER_FACTORY, CLASS, OffsetRecordFilterFactory.class, LOW, "Record Filter Factory Class")
                 .define(OFFSET_INITIAL, STRING, "", HIGH, "Starting offset")
                 .define(REQUEST_POLL_SCRIPT_INIT, STRING, "", LOW, "")
-                .define(REQUEST_POLL_SCRIPT_POST, STRING, "", LOW, "");
+                .define(REQUEST_POLL_SCRIPT_PRE, STRING, "", LOW, "")
+                .define(REQUEST_POLL_SCRIPT_POST, STRING, "", LOW, "")
+                .define(TASK_EXIT_WAIT, LONG, 10000, LOW, "Task Exit Wait milli-seconds")
+                ;
         ConfigUtils.configDkeMode(config);
         return config;
     }

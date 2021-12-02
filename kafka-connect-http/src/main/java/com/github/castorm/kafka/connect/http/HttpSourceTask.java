@@ -38,6 +38,7 @@ import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -102,11 +103,9 @@ public class HttpSourceTask extends SourceTask {
         responseParser = config.getResponseParser();
         recordSorter = config.getRecordSorter();
         recordFilterFactory = config.getRecordFilterFactory();
+
+        // init offset
         offset = loadOffset(config.getInitialOffset());
-
-        offset.setSnapshoting(true);
-        offset.setPaginating(false);
-
 
         // pre auth
         authenticator = requestExecutor.getAuthenticator();
@@ -119,6 +118,9 @@ public class HttpSourceTask extends SourceTask {
     // 初始化offset
     private Offset loadOffset(Map<String, String> initialOffset) {
         Offset offset = Offset.of(initialOffset);
+        offset.setSnapshoting(true);
+        offset.setPaginating(false);
+
         if (ConfigUtils.isDkeTaskMode(config)) {
             offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
         } else {
@@ -133,6 +135,8 @@ public class HttpSourceTask extends SourceTask {
             if (HttpSourceConnector.taskCount.decrementAndGet() <= 0) {
                 // do something finally if needed
             }
+            log.info("Waiting to exit for offset committing ...");
+            Utils.sleep(config.getTaskExitWait());
             throw new ConnectException(ExitUtils.MSG_DONE);// force task stop
         }
     }
@@ -145,6 +149,7 @@ public class HttpSourceTask extends SourceTask {
             throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
         }
 
+        offset = ScriptUtils.evalScript(config.getPollScriptPre(), offset);
         Pageable pageRequest = offset.getPageable().orElse(null);
         log.info("Requesting for offset {}", offset);
         HttpRequest request = requestFactory.createRequest(offset);
@@ -209,10 +214,10 @@ public class HttpSourceTask extends SourceTask {
 
     @Override
     public void commit() {
-        Offset commited = confirmationWindow.getLowWatermarkOffset().map(Offset::of).orElse(offset);
-        log.debug("Offset committed: {}", commited);
+        Offset lastCommited = confirmationWindow.getLowWatermarkOffset().map(Offset::of).orElse(offset);
+        log.debug("Offset committed: {}", lastCommited);
         if (!ConfigUtils.isDkeTaskMode(config)) {
-            offset.update(commited);
+            offset.update(lastCommited);
         }
     }
 

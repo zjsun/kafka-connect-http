@@ -116,7 +116,7 @@ public class OkHttpClient implements HttpClient {
     @Override
     @SneakyThrows(IOException.class)
     public HttpResponse execute(HttpRequest httpRequest) {
-
+        log.info("Requesting : "+httpRequest.toString());
         Request request = mapHttpRequest(httpRequest);
 
         Call call = client.newCall(request);
