@@ -49,7 +49,6 @@ public class Offset implements Map<String, Object> {
     private static final String KEY_PS = "ps"; // page size
     private static final String KEY_PI = "pi"; // page index
     private static final String KEY_PT = "pt"; // page total/count
-    private static final String KEY_PP = "pp"; // first page index
 
     public static final String KEY_SNAPSHOTING = "SNAPSHOTING";
     public static final String KEY_PAGINATING = "PAGINATING";
@@ -82,12 +81,16 @@ public class Offset implements Map<String, Object> {
         if (ps && update.containsKey(KEY_PS)) this.put(KEY_PS, update.get(KEY_PS));
         if (pi && update.containsKey(KEY_PI)) this.put(KEY_PI, update.get(KEY_PI));
         if (pt && update.containsKey(KEY_PT)) this.put(KEY_PT, update.get(KEY_PT));
-        if (update.containsKey(KEY_PP)) this.put(KEY_PP, update.get(KEY_PP));
         return this;
     }
 
     public Offset updatePi(int pi) {
-        this.put(KEY_PI, pi);
+        this.put(KEY_PI, String.valueOf(pi));
+        return this;
+    }
+
+    public Offset updatePt(long pt) {
+        this.put(KEY_PT, String.valueOf(pt));
         return this;
     }
 
@@ -123,10 +126,6 @@ public class Offset implements Map<String, Object> {
             }
         }
         return Optional.ofNullable(page);
-    }
-
-    public int getPp() {
-        return Integer.parseInt((String) properties.getOrDefault(KEY_PP, "0"));
     }
 
     public boolean isSnapshoting() {

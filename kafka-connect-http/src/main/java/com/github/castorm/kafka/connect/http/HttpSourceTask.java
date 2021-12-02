@@ -168,12 +168,12 @@ public class HttpSourceTask extends SourceTask {
         if (config.hasPollScriptPost()) {
             offset = ScriptUtils.evalScript(config.getPollScriptPost(), offset);
         } else {
-            offset = recordOffsets.stream().findFirst().map(map -> offset.updatePage(map, true, true, true)).orElse(offset);
+            offset = recordOffsets.stream().findFirst().map(map -> offset.updatePage(map, false, false, true)).orElse(offset);
             Page pageResult = offset.getPage().orElse(null);
             if (pageResult != null) {
                 if (pageResult.hasNext()) { // 进入翻页过程，并置下一页
                     offset.setPaginating(true);
-                    int nextPi = pageResult.nextPageable().getPageNumber() + offset.getPp();
+                    int nextPi = pageResult.nextPageable().getPageNumber();
                     if (nextPi == pageRequest.getPageNumber()) {
                         throw new ConnectException("请正确设置pp(首页序号)并清理Offset后重试");
                     }
