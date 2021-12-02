@@ -107,8 +107,8 @@ public class Offset implements Map<String, Object> {
     public Optional<Pageable> getPageable() {
         Pageable request = null;
         if (properties.containsKey(KEY_PS) && properties.containsKey(KEY_PI)) {
-            int ps = Integer.parseInt((String) properties.get(KEY_PS));
-            int pi = Integer.parseInt((String) properties.get(KEY_PI));
+            int ps = Integer.parseInt(String.valueOf(properties.get(KEY_PS)));
+            int pi = Integer.parseInt(String.valueOf(properties.get(KEY_PI)));
             request = PageRequest.of(pi, ps);
         }
         return Optional.ofNullable(request);

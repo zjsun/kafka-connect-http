@@ -121,12 +121,10 @@ public class HttpSourceTask extends SourceTask {
         offset.setSnapshoting(true);
         offset.setPaginating(false);
 
-        if (ConfigUtils.isDkeTaskMode(config)) {
-            offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
-        } else {
-            Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
-            offset.update(restoredOffset);
-        }
+        Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
+        offset.update(restoredOffset);
+
+        offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
         return offset;
     }
 
