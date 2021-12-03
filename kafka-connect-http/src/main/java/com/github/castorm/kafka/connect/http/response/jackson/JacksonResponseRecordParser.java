@@ -23,10 +23,13 @@ package com.github.castorm.kafka.connect.http.response.jackson;
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.castorm.kafka.connect.http.model.NeedAuthException;
 import com.github.castorm.kafka.connect.http.response.jackson.model.JacksonRecord;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.Configurable;
+import org.springframework.util.CollectionUtils;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -47,6 +50,8 @@ public class JacksonResponseRecordParser implements Configurable {
 
     private Map<String, JsonPointer> pagerPointer;
 
+    private Map<String, List<String>> needAuthChecks;
+
     public JacksonResponseRecordParser() {
         this(new JacksonRecordParser(), new JacksonSerializer(new ObjectMapper()));
     }
@@ -60,16 +65,29 @@ public class JacksonResponseRecordParser implements Configurable {
         JacksonRecordParserConfig config = configFactory.apply(settings);
         recordsPointer = config.getRecordsPointer();
         pagerPointer = config.getPagerPointers();
+        needAuthChecks = config.getNeedAuthChecks();
     }
 
     Stream<JacksonRecord> getRecords(byte[] body) {
 
-        JsonNode jsonBody = serializer.deserialize(body);
+        JsonNode jsonBody = checkNeedAuth(serializer.deserialize(body));
 
         Map<String, Object> responseOffset = getResponseOffset(jsonBody);
 
         return serializer.getArrayAt(jsonBody, recordsPointer)
                 .map(jsonRecord -> toJacksonRecord(jsonRecord, responseOffset));
+    }
+
+    JsonNode checkNeedAuth(JsonNode jsonBody) {
+        if (!CollectionUtils.isEmpty(needAuthChecks)) {
+            needAuthChecks.entrySet().forEach(entry -> {
+                JsonNode match = jsonBody.at(entry.getKey());
+                if (!match.isMissingNode() && entry.getValue().contains(match.asText())) {
+                    throw new NeedAuthException(jsonBody.toString());
+                }
+            });
+        }
+        return jsonBody;
     }
 
     // 解析pager信息并存入offset

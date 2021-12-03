@@ -36,9 +36,11 @@ import java.util.stream.Collectors;
 import static com.fasterxml.jackson.core.JsonPointer.compile;
 import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownList;
 import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownMap;
+import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownMultiValuePairs;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.kafka.common.config.ConfigDef.Importance.HIGH;
+import static org.apache.kafka.common.config.ConfigDef.Importance.LOW;
 import static org.apache.kafka.common.config.ConfigDef.Importance.MEDIUM;
 import static org.apache.kafka.common.config.ConfigDef.Type.STRING;
 
@@ -51,6 +53,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
     private static final String ITEM_TIMESTAMP_POINTER = "http.response.record.timestamp.pointer";
     private static final String ITEM_OFFSET_VALUE_POINTER = "http.response.record.offset.pointer";
     private static final String PAGER_POINTER = "http.response.pager.pointer";
+    private static final String NEED_AUTH_CHECK = "http.response.need.auth.check";
 
     private final JsonPointer recordsPointer;
     private final List<JsonPointer> keyPointer;
@@ -58,6 +61,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
     private final Optional<JsonPointer> timestampPointer;
     private final Map<String, JsonPointer> offsetPointers;
     private final Map<String, JsonPointer> pagerPointers;
+    private final Map<String, List<String>> needAuthChecks;
 
     JacksonRecordParserConfig(Map<String, ?> originals) {
         super(config(), originals);
@@ -71,6 +75,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
         pagerPointers = breakDownMap(getString(PAGER_POINTER)).entrySet().stream()
                 .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), compile(entry.getValue())))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+        needAuthChecks = breakDownMultiValuePairs(getString(NEED_AUTH_CHECK), ",", "=");
     }
 
     public static ConfigDef config() {
@@ -80,6 +85,8 @@ public class JacksonRecordParserConfig extends AbstractConfig {
                 .define(ITEM_KEY_POINTER, STRING, null, HIGH, "Item Key JsonPointers")
                 .define(ITEM_TIMESTAMP_POINTER, STRING, null, MEDIUM, "Item Timestamp JsonPointer")
                 .define(ITEM_OFFSET_VALUE_POINTER, STRING, "", MEDIUM, "Item Offset JsonPointers")
-                .define(PAGER_POINTER, STRING, "", MEDIUM, "Pager JsonPointers");
+                .define(PAGER_POINTER, STRING, "", MEDIUM, "Pager JsonPointers")
+                .define(NEED_AUTH_CHECK, STRING, "", LOW, "Check if Need Auth")
+                ;
     }
 }

@@ -25,6 +25,7 @@ import com.github.castorm.kafka.connect.http.auth.spi.HttpAuthenticator;
 import com.github.castorm.kafka.connect.http.client.spi.HttpClient;
 import com.github.castorm.kafka.connect.http.model.HttpRequest;
 import com.github.castorm.kafka.connect.http.model.HttpResponse;
+import com.github.castorm.kafka.connect.http.model.NeedAuthException;
 import com.github.castorm.kafka.connect.http.model.Offset;
 import com.github.castorm.kafka.connect.http.record.spi.SourceRecordFilterFactory;
 import com.github.castorm.kafka.connect.http.record.spi.SourceRecordSorter;
@@ -107,12 +108,14 @@ public class HttpSourceTask extends SourceTask {
         // init offset
         offset = loadOffset(config.getInitialOffset());
 
-        // pre auth
+        doAuthenticate();
+    }
+
+    void doAuthenticate() {
         authenticator = requestExecutor.getAuthenticator();
         if (authenticator != null) {
             offset = authenticator.authenticate(requestExecutor, offset);
         }
-
     }
 
     // 初始化offset
@@ -141,6 +144,26 @@ public class HttpSourceTask extends SourceTask {
         }
     }
 
+    List<SourceRecord> doPollRequest(int loop) {
+        HttpRequest request = requestFactory.createRequest(offset);
+        HttpResponse response = execute(request);
+
+        List<SourceRecord> records;
+        try {
+            records = responseParser.parse(response);
+        } catch (NeedAuthException ex) {
+            if (loop > 2) {
+                throw new ConnectException("重新认证失败");
+            } else {
+                log.warn("认证失败: {} 准备第{}次重试...", ex.getMessage(), ++loop);
+                Utils.sleep(2000);
+                doAuthenticate();
+                records = doPollRequest(loop);
+            }
+        }
+        return records;
+    }
+
     @Override
     public List<SourceRecord> poll() throws InterruptedException {
         // 1) 每次分页迭代开始需要重置翻页参数；2）快照阶段不使用间隔等待
@@ -155,11 +178,8 @@ public class HttpSourceTask extends SourceTask {
 
         Pageable pageRequest = offset.getPageable().orElse(null);
         log.info("Offset: {}", offset);
-        HttpRequest request = requestFactory.createRequest(offset);
 
-        HttpResponse response = execute(request);
-
-        List<SourceRecord> records = responseParser.parse(response);
+        List<SourceRecord> records = doPollRequest(0);
 
         List<SourceRecord> unseenRecords = recordSorter.sort(records).stream()
                 .filter(recordFilterFactory.create(offset))

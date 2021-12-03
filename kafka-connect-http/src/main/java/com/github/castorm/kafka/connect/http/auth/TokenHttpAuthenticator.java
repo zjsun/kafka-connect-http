@@ -61,7 +61,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
     private final JacksonSerializer serializer = new JacksonSerializer();
     private Map<String, JsonPointer> resPointers;
     private String resBodyName;
-    private boolean shouldAuth = false;
+    private boolean needAuth = false;
     private String scriptPre;
     private String scriptPost;
 
@@ -78,7 +78,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
         TokenHttpAuthenticatorConfig config = configFactory.apply(configs);
         TemplateFactory templateFactory = config.getTemplateFactory();
 
-        shouldAuth = StringUtils.isNotEmpty(config.getUrl());
+        needAuth = StringUtils.isNotEmpty(config.getUrl());
         method = config.getMethod();
         urlTpl = templateFactory.create(config.getUrl());
         headersTpl = templateFactory.create(config.getHeaders());
@@ -104,7 +104,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
     @SneakyThrows
     @Override
     public Offset authenticate(HttpClient client, Offset offset) {
-        if (shouldAuth) {
+        if (needAuth) {
             offset = evalScript(scriptPre, offset);
             HttpRequest request = createRequest(offset);
             HttpResponse response = client.execute(request);

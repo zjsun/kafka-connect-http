@@ -71,12 +71,12 @@ public class JacksonKvRecordHttpResponseParser implements KvRecordHttpResponsePa
 
         String key = ofNullable(record.getKey())
                 .map(Optional::of)
-                .orElseGet(() -> ofNullable(offsets.get("key")).map(String.class::cast))
+                .orElseGet(() -> ofNullable(offsets.get(Offset.KEY_KEY)).map(String.class::cast))
                 .orElseGet(() -> generateConsistentKey(record.getBody()));
 
         Optional<Instant> timestamp = ofNullable(record.getTimestamp())
                 .map(Optional::of)
-                .orElseGet(() -> ofNullable(offsets.get("timestamp")).map(String.class::cast))
+                .orElseGet(() -> ofNullable(offsets.get(Offset.TIMESTAMP_KEY)).map(String.class::cast))
                 .map(timestampParser::parse);
 
         Offset offset = timestamp

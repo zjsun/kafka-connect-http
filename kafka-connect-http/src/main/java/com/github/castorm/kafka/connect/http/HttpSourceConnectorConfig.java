@@ -39,13 +39,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
+import java.util.List;
 import java.util.Map;
 
 import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownMap;
+import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownMultiValuePairs;
 import static org.apache.kafka.common.config.ConfigDef.Importance.HIGH;
 import static org.apache.kafka.common.config.ConfigDef.Importance.LOW;
 import static org.apache.kafka.common.config.ConfigDef.Type.CLASS;
-import static org.apache.kafka.common.config.ConfigDef.Type.INT;
 import static org.apache.kafka.common.config.ConfigDef.Type.LONG;
 import static org.apache.kafka.common.config.ConfigDef.Type.STRING;
 
@@ -75,6 +76,7 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     private final String pollScriptPre;
     private final String pollScriptPost;
     private final long taskExitWait;
+
 
     HttpSourceConnectorConfig(Map<String, ?> originals) {
         super(config(), originals);
@@ -111,15 +113,15 @@ class HttpSourceConnectorConfig extends AbstractConfig {
         return config;
     }
 
-    public boolean hasPollScriptInit(){
+    public boolean hasPollScriptInit() {
         return StringUtils.isNotEmpty(pollScriptInit);
     }
 
-    public boolean hasPollScriptPost(){
+    public boolean hasPollScriptPost() {
         return StringUtils.isNotEmpty(pollScriptPost);
     }
 
-    public boolean hasPollScriptPre(){
+    public boolean hasPollScriptPre() {
         return StringUtils.isNotEmpty(pollScriptPre);
     }
 }
