@@ -49,6 +49,7 @@ public class Offset implements Map<String, Object> {
     private static final String KEY_PS = "ps"; // page size
     private static final String KEY_PI = "pi"; // page index
     private static final String KEY_PT = "pt"; // page total/count
+    private static final String KEY_PP = "pp"; // first page index
 
     public static final String KEY_SNAPSHOTING = "SNAPSHOTING";
     public static final String KEY_PAGINATING = "PAGINATING";
@@ -100,11 +101,11 @@ public class Offset implements Map<String, Object> {
     }
 
     public Optional<String> getKey() {
-        return ofNullable((String) properties.get(KEY_KEY));
+        return ofNullable(String.valueOf(properties.get(KEY_KEY)));
     }
 
     public Optional<Instant> getTimestamp() {
-        return ofNullable((String) properties.get(TIMESTAMP_KEY)).map(Instant::parse);
+        return ofNullable(String.valueOf(properties.get(TIMESTAMP_KEY))).map(Instant::parse);
     }
 
     public Optional<Pageable> getPageable() {
@@ -122,10 +123,26 @@ public class Offset implements Map<String, Object> {
         Pageable request = getPageable().orElse(null);
         if (request != null) {
             if (properties.containsKey(KEY_PT)) {
-                page = new PageImpl(Arrays.asList(new Object[request.getPageSize()]), request, Long.parseLong((String) properties.get(KEY_PT)));
+                long pt = getPt();
+                page = new PageImpl(Arrays.asList(new Object[request.getPageSize()]), request, pt);
+                if (pt < page.getTotalElements() && isOneIndexedPp()) {
+                    page = new PageImpl(page.getContent(), PageRequest.of(request.getPageNumber() - 1, request.getPageSize()), pt);
+                }
             }
         }
         return Optional.ofNullable(page);
+    }
+
+    public long getPt() {
+        return Long.parseLong(String.valueOf(properties.getOrDefault(KEY_PT, "0")));
+    }
+
+    public int getPp() {
+        return Integer.parseInt(String.valueOf(properties.getOrDefault(KEY_PP, "0")));
+    }
+
+    public boolean isOneIndexedPp() {
+        return getPp() == 1;
     }
 
     public boolean isSnapshoting() {

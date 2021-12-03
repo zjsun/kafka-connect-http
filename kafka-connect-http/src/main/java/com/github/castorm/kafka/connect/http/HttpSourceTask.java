@@ -149,7 +149,7 @@ public class HttpSourceTask extends SourceTask {
 
         offset = ScriptUtils.evalScript(config.getPollScriptPre(), offset);
         Pageable pageRequest = offset.getPageable().orElse(null);
-        log.info("Requesting for offset {}", offset);
+        log.info("Offset: {}", offset);
         HttpRequest request = requestFactory.createRequest(offset);
 
         HttpResponse response = execute(request);
@@ -175,7 +175,11 @@ public class HttpSourceTask extends SourceTask {
                     offset.setPaginating(true);
                     int nextPi = pageResult.nextPageable().getPageNumber();
                     if (nextPi == pageRequest.getPageNumber()) {
-                        throw new ConnectException("请正确设置pp(首页序号)并清理Offset后重试");
+                        if (offset.isOneIndexedPp()) {
+                            nextPi++;
+                        } else {
+                            throw new ConnectException("请正确设置pp(首页序号)并清理Offset后重试");
+                        }
                     }
                     offset.updatePi(nextPi);
                 } else { // 退出翻页过程，退出快照过程
