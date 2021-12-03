@@ -101,11 +101,11 @@ public class Offset implements Map<String, Object> {
     }
 
     public Optional<String> getKey() {
-        return ofNullable(String.valueOf(properties.get(KEY_KEY)));
+        return ofNullable((String) properties.get(KEY_KEY));
     }
 
     public Optional<Instant> getTimestamp() {
-        return ofNullable(String.valueOf(properties.get(TIMESTAMP_KEY))).map(Instant::parse);
+        return ofNullable((String) properties.get(TIMESTAMP_KEY)).map(Instant::parse);
     }
 
     public Optional<Pageable> getPageable() {

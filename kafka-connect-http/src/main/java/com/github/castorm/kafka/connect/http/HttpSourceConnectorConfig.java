@@ -118,4 +118,8 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     public boolean hasPollScriptPost(){
         return StringUtils.isNotEmpty(pollScriptPost);
     }
+
+    public boolean hasPollScriptPre(){
+        return StringUtils.isNotEmpty(pollScriptPre);
+    }
 }

@@ -124,7 +124,9 @@ public class HttpSourceTask extends SourceTask {
         Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
         offset.update(restoredOffset);
 
-        offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
+        if (config.hasPollScriptInit()) {
+            offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
+        }
         return offset;
     }
 
@@ -147,7 +149,10 @@ public class HttpSourceTask extends SourceTask {
             throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
         }
 
-        offset = ScriptUtils.evalScript(config.getPollScriptPre(), offset);
+        if (config.hasPollScriptPre()) {
+            offset = ScriptUtils.evalScript(config.getPollScriptPre(), offset);
+        }
+
         Pageable pageRequest = offset.getPageable().orElse(null);
         log.info("Offset: {}", offset);
         HttpRequest request = requestFactory.createRequest(offset);
@@ -167,7 +172,7 @@ public class HttpSourceTask extends SourceTask {
 
         if (config.hasPollScriptPost()) {
             offset = ScriptUtils.evalScript(config.getPollScriptPost(), offset);
-        } else {
+        } else if (offset.isSnapshoting()) {
             offset = recordOffsets.stream().findFirst().map(map -> offset.updatePage(map, false, false, true)).orElse(offset);
             Page pageResult = offset.getPage().orElse(null);
             if (pageResult != null) {
