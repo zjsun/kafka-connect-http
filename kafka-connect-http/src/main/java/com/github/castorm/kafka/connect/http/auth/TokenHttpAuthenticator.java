@@ -32,6 +32,7 @@ import com.github.castorm.kafka.connect.http.request.template.spi.TemplateFactor
 import com.github.castorm.kafka.connect.http.response.jackson.JacksonSerializer;
 import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -44,6 +45,7 @@ import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownQuery
 import static com.github.castorm.kafka.connect.util.ScriptUtils.evalScript;
 import static java.util.stream.Collectors.toMap;
 
+@Slf4j
 public class TokenHttpAuthenticator implements HttpAuthenticator {
 
     private final Function<Map<String, ?>, TokenHttpAuthenticatorConfig> configFactory;
@@ -107,6 +109,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
         if (needAuth) {
             offset = evalScript(scriptPre, offset);
             HttpRequest request = createRequest(offset);
+            log.info("认证请求：{}", request);
             HttpResponse response = client.execute(request);
             if (!CollectionUtils.isEmpty(resPointers)) {
                 JsonNode jsonBody = serializer.deserialize(response.getBody());

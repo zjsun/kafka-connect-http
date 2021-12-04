@@ -21,6 +21,7 @@ package com.github.castorm.kafka.connect.http.response.jackson;
  */
 
 import com.fasterxml.jackson.core.JsonPointer;
+import com.github.castorm.kafka.connect.http.response.jackson.model.ResponseType;
 import lombok.Getter;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -54,6 +55,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
     private static final String ITEM_OFFSET_VALUE_POINTER = "http.response.record.offset.pointer";
     private static final String PAGER_POINTER = "http.response.pager.pointer";
     private static final String NEED_AUTH_CHECK = "http.response.need.auth.check";
+    private static final String RESPONSE_TYPE = "http.response.type";
 
     private final JsonPointer recordsPointer;
     private final List<JsonPointer> keyPointer;
@@ -62,6 +64,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
     private final Map<String, JsonPointer> offsetPointers;
     private final Map<String, JsonPointer> pagerPointers;
     private final Map<String, List<String>> needAuthChecks;
+    private final ResponseType responseType;
 
     JacksonRecordParserConfig(Map<String, ?> originals) {
         super(config(), originals);
@@ -76,6 +79,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
                 .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), compile(entry.getValue())))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
         needAuthChecks = breakDownMultiValuePairs(getString(NEED_AUTH_CHECK), ",", "=");
+        responseType = ResponseType.valueOf(getString(RESPONSE_TYPE).toUpperCase());
     }
 
     public static ConfigDef config() {
@@ -87,6 +91,7 @@ public class JacksonRecordParserConfig extends AbstractConfig {
                 .define(ITEM_OFFSET_VALUE_POINTER, STRING, "", MEDIUM, "Item Offset JsonPointers")
                 .define(PAGER_POINTER, STRING, "", MEDIUM, "Pager JsonPointers")
                 .define(NEED_AUTH_CHECK, STRING, "", LOW, "Check if Need Auth")
+                .define(RESPONSE_TYPE, STRING, ResponseType.JSON.name(), LOW, "Response Content Type: JSON/XML")
                 ;
     }
 }

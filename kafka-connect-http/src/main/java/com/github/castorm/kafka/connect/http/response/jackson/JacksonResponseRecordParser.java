@@ -23,9 +23,12 @@ package com.github.castorm.kafka.connect.http.response.jackson;
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.github.castorm.kafka.connect.http.model.NeedAuthException;
 import com.github.castorm.kafka.connect.http.response.jackson.model.JacksonRecord;
+import com.github.castorm.kafka.connect.http.response.jackson.model.ResponseType;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.apache.kafka.common.Configurable;
 import org.springframework.util.CollectionUtils;
 
@@ -46,11 +49,15 @@ public class JacksonResponseRecordParser implements Configurable {
 
     private final JacksonSerializer serializer;
 
+    private final XmlMapper xmlMapper = new XmlMapper();
+
     private JsonPointer recordsPointer;
 
     private Map<String, JsonPointer> pagerPointer;
 
     private Map<String, List<String>> needAuthChecks;
+
+    private ResponseType responseType;
 
     public JacksonResponseRecordParser() {
         this(new JacksonRecordParser(), new JacksonSerializer(new ObjectMapper()));
@@ -66,16 +73,29 @@ public class JacksonResponseRecordParser implements Configurable {
         recordsPointer = config.getRecordsPointer();
         pagerPointer = config.getPagerPointers();
         needAuthChecks = config.getNeedAuthChecks();
+        responseType = config.getResponseType();
     }
 
     Stream<JacksonRecord> getRecords(byte[] body) {
 
-        JsonNode jsonBody = checkNeedAuth(serializer.deserialize(body));
+        JsonNode jsonBody = checkNeedAuth(doDeserializeBody(body));
 
         Map<String, Object> responseOffset = getResponseOffset(jsonBody);
 
         return serializer.getArrayAt(jsonBody, recordsPointer)
                 .map(jsonRecord -> toJacksonRecord(jsonRecord, responseOffset));
+    }
+
+    @SneakyThrows
+    JsonNode doDeserializeBody(byte[] body) {
+        switch (responseType) {
+            case JSON:
+                return serializer.deserialize(body);
+            case XML:
+                return xmlMapper.readTree(body);
+            default:
+                throw new IllegalStateException("仅支持JSON/XML");
+        }
     }
 
     JsonNode checkNeedAuth(JsonNode jsonBody) {

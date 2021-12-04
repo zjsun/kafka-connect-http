@@ -1,4 +1,4 @@
-package com.github.castorm.kafka.connect.http.model;
+package com.github.castorm.kafka.connect.http.response.jackson.model;
 
 /*-
  * #%L
@@ -22,13 +22,8 @@ package com.github.castorm.kafka.connect.http.model;
 
 /**
  * @author Alex.Sun
- * @created 2021-12-03 22:28
+ * @created 2021-12-04 20:07
  */
-public class NeedAuthException extends RuntimeException {
-    public NeedAuthException() {
-    }
-
-    public NeedAuthException(String message) {
-        super(message);
-    }
+public enum ResponseType {
+    JSON,XML
 }
