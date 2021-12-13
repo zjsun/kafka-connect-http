@@ -90,8 +90,7 @@ public class SchemedKvSourceRecordMapper implements KvSourceRecordMapper {
                 key.schema(),
                 key,
                 value.schema(),
-                value,
-                timestamp);
+                value);
     }
 
     private Struct keyStruct(String key) {
