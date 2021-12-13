@@ -107,7 +107,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
     @Override
     public Offset authenticate(HttpClient client, Offset offset) {
         if (needAuth) {
-            offset = evalScript(scriptPre, offset);
+            offset = Offset.of(evalScript(scriptPre, offset));
             HttpRequest request = createRequest(offset);
             log.info("认证请求：{}", request);
             HttpResponse response = client.execute(request);
@@ -118,7 +118,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
             } else if (StringUtils.isNotEmpty(resBodyName)) {
                 offset.update(Collections.singletonMap(resBodyName, new String(response.getBody())));
             }
-            offset = evalScript(scriptPost, offset);
+            offset = Offset.of(evalScript(scriptPost, offset));
         }
         return offset;
     }

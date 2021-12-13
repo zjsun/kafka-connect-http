@@ -128,7 +128,7 @@ public class HttpSourceTask extends SourceTask {
         offset.update(restoredOffset);
 
         if (config.hasPollScriptInit()) {
-            offset = ScriptUtils.evalScript(config.getPollScriptInit(), offset);
+            offset = Offset.of(ScriptUtils.evalScript(config.getPollScriptInit(), offset));
         }
         return offset;
     }
@@ -173,7 +173,7 @@ public class HttpSourceTask extends SourceTask {
         }
 
         if (config.hasPollScriptPre()) {
-            offset = ScriptUtils.evalScript(config.getPollScriptPre(), offset);
+            offset = Offset.of(ScriptUtils.evalScript(config.getPollScriptPre(), offset));
         }
 
         Pageable pageRequest = offset.getPageable().orElse(null);
@@ -191,7 +191,7 @@ public class HttpSourceTask extends SourceTask {
         confirmationWindow = new ConfirmationWindow<>(recordOffsets);
 
         if (config.hasPollScriptPost()) {
-            offset = ScriptUtils.evalScript(config.getPollScriptPost(), offset);
+            offset = Offset.of(ScriptUtils.evalScript(config.getPollScriptPost(), offset));
         } else if (offset.isSnapshoting()) {
             offset = recordOffsets.stream().findFirst().map(map -> offset.updatePage(map, false, false, true)).orElse(offset);
             Page pageResult = offset.getPage().orElse(null);

@@ -35,20 +35,20 @@ import java.util.Map;
  * @created 2021-12-01 15:04
  */
 @Slf4j
-public class ScriptUtils {
+public final class ScriptUtils {
     public static final String VAR_NAME = "offset";
 
     private static final ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("JavaScript");
     public static final String VAR_LOG = "log";
 
     @SneakyThrows
-    public static Offset evalScript(String script, Offset offset) {
+    public static Map<String, Object> evalScript(String script, Map<String, Object> offset) {
         if (StringUtils.isNotEmpty(script)) {
             Bindings bindings = scriptEngine.createBindings();
             bindings.put(VAR_NAME, offset);
             bindings.put(VAR_LOG, log);
             Map<String, Object> vars = (Map<String, Object>) scriptEngine.eval(script + ";" + VAR_NAME, bindings);
-            offset.update(vars);
+            offset.putAll(vars);
         }
 
         return offset;
