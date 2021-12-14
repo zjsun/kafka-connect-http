@@ -24,6 +24,7 @@ import com.github.castorm.kafka.connect.http.model.Offset;
 import com.github.castorm.kafka.connect.http.record.model.KvRecord;
 import com.github.castorm.kafka.connect.http.record.spi.KvSourceRecordMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -90,7 +91,8 @@ public class SchemedKvSourceRecordMapper implements KvSourceRecordMapper {
                 key.schema(),
                 key,
                 value.schema(),
-                value);
+                value,
+                System.currentTimeMillis());
     }
 
     private Struct keyStruct(String key) {
