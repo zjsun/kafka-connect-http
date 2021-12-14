@@ -24,7 +24,6 @@ import com.github.castorm.kafka.connect.http.model.Offset;
 import com.github.castorm.kafka.connect.http.record.spi.SourceRecordSorter;
 import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.compare.ObjectToStringComparator;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import java.util.ArrayList;
@@ -45,7 +44,10 @@ public class OrderDirectionSourceRecordSorter implements SourceRecordSorter {
     private OrderDirection orderDirection;
 
     private static final Comparator<SourceRecord> OFFSET_TIMESTAMP_COMPARATOR = Comparator.comparingLong(
-            r -> r.timestamp() == null ? 0 : r.timestamp()
+            r -> {
+                Long ts = Offset.of(r.sourceOffset()).getTimestamp().map(t -> t.toEpochMilli()).orElse(r.timestamp());
+                return ts == null ? 0 : ts;
+            }
     );
 
     public OrderDirectionSourceRecordSorter() {
@@ -80,9 +82,7 @@ public class OrderDirectionSourceRecordSorter implements SourceRecordSorter {
 
     private static OrderDirection getImplicitDirection(List<SourceRecord> records) {
         if (records.size() >= 2) {
-            Long first = records.get(0).timestamp();
-            Long last = records.get(records.size() - 1).timestamp();
-            return first <= last ? ASC : DESC;
+            return OFFSET_TIMESTAMP_COMPARATOR.compare(records.get(0), records.get(records.size() - 1)) <= 0 ? ASC : DESC;
         }
         return ASC;
     }
