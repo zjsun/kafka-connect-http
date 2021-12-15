@@ -20,6 +20,7 @@ package com.github.castorm.kafka.connect.http;
  * #L%
  */
 
+import com.datav.scdf.kafka.common.ConfigUtils;
 import com.github.castorm.kafka.connect.http.client.okhttp.OkHttpClient;
 import com.github.castorm.kafka.connect.http.client.spi.HttpClient;
 import com.github.castorm.kafka.connect.http.record.OffsetRecordFilterFactory;
@@ -33,7 +34,6 @@ import com.github.castorm.kafka.connect.http.response.spi.HttpResponseParser;
 import com.github.castorm.kafka.connect.timer.AdaptableIntervalTimer;
 import com.github.castorm.kafka.connect.timer.TimerThrottler;
 import com.github.castorm.kafka.connect.timer.spi.Timer;
-import com.github.castorm.kafka.connect.util.ConfigUtils;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.AbstractConfig;

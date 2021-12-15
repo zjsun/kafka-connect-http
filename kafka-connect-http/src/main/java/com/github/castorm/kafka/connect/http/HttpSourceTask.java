@@ -20,6 +20,8 @@ package com.github.castorm.kafka.connect.http;
  * #L%
  */
 
+import com.datav.scdf.kafka.common.ConfigUtils;
+import com.datav.scdf.kafka.common.ScriptUtils;
 import com.github.castorm.kafka.connect.http.ack.ConfirmationWindow;
 import com.github.castorm.kafka.connect.http.auth.spi.HttpAuthenticator;
 import com.github.castorm.kafka.connect.http.client.spi.HttpClient;
@@ -32,8 +34,6 @@ import com.github.castorm.kafka.connect.http.record.spi.SourceRecordSorter;
 import com.github.castorm.kafka.connect.http.request.spi.HttpRequestFactory;
 import com.github.castorm.kafka.connect.http.response.spi.HttpResponseParser;
 import com.github.castorm.kafka.connect.timer.TimerThrottler;
-import com.github.castorm.kafka.connect.util.ConfigUtils;
-import com.github.castorm.kafka.connect.util.ScriptUtils;
 import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -123,8 +123,10 @@ public class HttpSourceTask extends SourceTask {
         offset.setSnapshoting(true);
         offset.setPaginating(false);
 
-        Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
-        offset.update(restoredOffset);
+        if (!ConfigUtils.isDkeTaskMode(config)) { // 仅在stream中需要读取offset
+            Map<String, Object> restoredOffset = ofNullable(context.offsetStorageReader().offset(emptyMap())).orElseGet(Collections::emptyMap);
+            offset.update(restoredOffset);
+        }
 
         if (config.hasPollScriptInit()) {
             offset = Offset.of(ScriptUtils.evalScript(config.getPollScriptInit(), offset));

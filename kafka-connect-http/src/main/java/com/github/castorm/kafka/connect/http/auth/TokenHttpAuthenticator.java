@@ -20,6 +20,7 @@ package com.github.castorm.kafka.connect.http.auth;
  * #L%
  */
 
+import com.datav.scdf.kafka.common.ScriptUtils;
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.castorm.kafka.connect.http.auth.spi.HttpAuthenticator;
@@ -42,7 +43,6 @@ import java.util.function.Function;
 
 import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownHeaders;
 import static com.github.castorm.kafka.connect.common.ConfigUtils.breakDownQueryParams;
-import static com.github.castorm.kafka.connect.util.ScriptUtils.evalScript;
 import static java.util.stream.Collectors.toMap;
 
 @Slf4j
@@ -107,7 +107,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
     @Override
     public Offset authenticate(HttpClient client, Offset offset) {
         if (needAuth) {
-            offset = Offset.of(evalScript(scriptPre, offset));
+            offset = Offset.of(ScriptUtils.evalScript(scriptPre, offset));
             HttpRequest request = createRequest(offset);
             log.info("认证请求：{}", request);
             HttpResponse response = client.execute(request);
@@ -118,7 +118,7 @@ public class TokenHttpAuthenticator implements HttpAuthenticator {
             } else if (StringUtils.isNotEmpty(resBodyName)) {
                 offset.update(Collections.singletonMap(resBodyName, new String(response.getBody())));
             }
-            offset = Offset.of(evalScript(scriptPost, offset));
+            offset = Offset.of(ScriptUtils.evalScript(scriptPost, offset));
         }
         return offset;
     }
