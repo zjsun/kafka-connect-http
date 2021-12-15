@@ -22,6 +22,7 @@ package com.github.castorm.kafka.connect.http;
 
 import com.datav.scdf.kafka.common.ConfigUtils;
 import com.datav.scdf.kafka.common.ScriptUtils;
+import com.datav.scdf.kafka.common.TaskUtils;
 import com.github.castorm.kafka.connect.http.ack.ConfirmationWindow;
 import com.github.castorm.kafka.connect.http.auth.spi.HttpAuthenticator;
 import com.github.castorm.kafka.connect.http.client.spi.HttpClient;
@@ -134,17 +135,6 @@ public class HttpSourceTask extends SourceTask {
         return offset;
     }
 
-    void checkIfTaskDone() {
-        if (ConfigUtils.isDkeTaskMode(this.config)) {
-            if (HttpSourceConnector.taskCount.decrementAndGet() <= 0) {
-                // do something finally if needed
-            }
-            log.info("Waiting to exit for offset committing ...");
-            Utils.sleep(config.getTaskExitWait());
-            throw new ConnectException(ConfigUtils.MSG_DONE);// force task stop
-        }
-    }
-
     List<SourceRecord> doPollRequest(int loop) {
         HttpRequest request = requestFactory.createRequest(offset);
         HttpResponse response = execute(request);
@@ -169,7 +159,7 @@ public class HttpSourceTask extends SourceTask {
     public List<SourceRecord> poll() throws InterruptedException {
         // 1) 每次分页迭代开始需要重置翻页参数；2）快照阶段不使用间隔等待
         if (!offset.isPaginating() && !offset.isSnapshoting()) {
-            checkIfTaskDone();
+            TaskUtils.taskDone(config, HttpSourceConnector.taskCount, null, false);
             throttler.throttle(offset.getTimestamp().orElseGet(Instant::now));
         }
 

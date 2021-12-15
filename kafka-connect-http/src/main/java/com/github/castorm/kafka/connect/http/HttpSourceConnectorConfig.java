@@ -63,7 +63,6 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     private static final String REQUEST_POLL_SCRIPT_INIT = "http.request.poll.script.init";
     private static final String REQUEST_POLL_SCRIPT_PRE = "http.request.poll.script.pre";
     private static final String REQUEST_POLL_SCRIPT_POST = "http.request.poll.script.post";
-    private static final String TASK_EXIT_WAIT = "http.task.exit.wait";
 
     private final TimerThrottler throttler;
     private final HttpRequestFactory requestFactory;
@@ -75,7 +74,6 @@ class HttpSourceConnectorConfig extends AbstractConfig {
     private final String pollScriptInit;
     private final String pollScriptPre;
     private final String pollScriptPost;
-    private final long taskExitWait;
 
 
     HttpSourceConnectorConfig(Map<String, ?> originals) {
@@ -91,7 +89,6 @@ class HttpSourceConnectorConfig extends AbstractConfig {
         pollScriptInit = getString(REQUEST_POLL_SCRIPT_INIT);
         pollScriptPre = getString(REQUEST_POLL_SCRIPT_PRE);
         pollScriptPost = getString(REQUEST_POLL_SCRIPT_POST);
-        taskExitWait = getLong(TASK_EXIT_WAIT);
 
     }
 
@@ -107,7 +104,6 @@ class HttpSourceConnectorConfig extends AbstractConfig {
                 .define(REQUEST_POLL_SCRIPT_INIT, STRING, "", LOW, "")
                 .define(REQUEST_POLL_SCRIPT_PRE, STRING, "", LOW, "")
                 .define(REQUEST_POLL_SCRIPT_POST, STRING, "", LOW, "")
-                .define(TASK_EXIT_WAIT, LONG, 10000, LOW, "Task Exit Wait milli-seconds")
                 ;
         ConfigUtils.configDkeMode(config);
         return config;
