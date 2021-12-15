@@ -33,7 +33,6 @@ import com.github.castorm.kafka.connect.http.request.spi.HttpRequestFactory;
 import com.github.castorm.kafka.connect.http.response.spi.HttpResponseParser;
 import com.github.castorm.kafka.connect.timer.TimerThrottler;
 import com.github.castorm.kafka.connect.util.ConfigUtils;
-import com.github.castorm.kafka.connect.util.ExitUtils;
 import com.github.castorm.kafka.connect.util.ScriptUtils;
 import edu.emory.mathcs.backport.java.util.Collections;
 import lombok.Getter;
@@ -140,7 +139,7 @@ public class HttpSourceTask extends SourceTask {
             }
             log.info("Waiting to exit for offset committing ...");
             Utils.sleep(config.getTaskExitWait());
-            throw new ConnectException(ExitUtils.MSG_DONE);// force task stop
+            throw new ConnectException(ConfigUtils.MSG_DONE);// force task stop
         }
     }
 
